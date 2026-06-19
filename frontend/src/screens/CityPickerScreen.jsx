@@ -12,9 +12,6 @@ export default function CityPickerScreen({ onCitySelect }) {
     queryFn: fetchCities,
   })
 
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
-  const greetEmoji = hour < 12 ? '☀️' : hour < 18 ? '👋' : '🌙'
 
   const filtered = cities.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase())
@@ -30,8 +27,8 @@ export default function CityPickerScreen({ onCitySelect }) {
       {/* Hero */}
       <div className="page-hero">
         <div className="container">
-          <div className="page-eyebrow">Find deals near you</div>
-          <div className="page-title">{greeting} {greetEmoji}</div>
+          <div className="page-eyebrow">Food & drink deals</div>
+          <div className="page-title">Best deals in your city.</div>
           <div className="search-bar" style={{ maxWidth: 520 }}>
             <svg viewBox="0 0 14 14" fill="none" stroke="#9A9A9A" strokeWidth="1.6" strokeLinecap="round">
               <circle cx="5.5" cy="5.5" r="3.5"/><path d="M8.5 8.5 12 12"/>
