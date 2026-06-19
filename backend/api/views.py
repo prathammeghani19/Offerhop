@@ -10,7 +10,6 @@ from .serializers import (
     CitySerializer, AreaSerializer, CategorySerializer,
     OfferSerializer, SavedOfferSerializer,
 )
-from .services import exa_service, claude_service
 
 logger = logging.getLogger(__name__)
 
@@ -88,88 +87,18 @@ def offers_list(request):
         except Category.DoesNotExist:
             pass
 
-    # Try DB first (populated by background job or previous fetch)
+    # Serve from DB — offers are imported via import_webset management command
     qs = Offer.objects.filter(area=area)
     if category:
         qs = qs.filter(category=category)
     if deal_type and deal_type != 'ALL':
         qs = qs.filter(deal_type=deal_type)
 
-    if qs.exists() and not refresh:
-        session_key = _session_key(request)
-        data = OfferSerializer(qs, many=True, context={'session_key': session_key}).data
-        payload = {'offers': data, 'source': 'db', 'count': len(data)}
-        cache.set(cache_key, payload, settings.CACHE_TTL)
-        return Response(payload)
-
-    # Live fetch via Exa
-    if not settings.EXA_API_KEY:
-        session_key = _session_key(request)
-        qs_all = Offer.objects.filter(area=area)
-        data = OfferSerializer(qs_all, many=True, context={'session_key': session_key}).data
-        return Response({
-            'offers': data,
-            'source': 'db_fallback',
-            'count': len(data),
-            'warning': 'EXA_API_KEY not configured in .env',
-        })
-
-    try:
-        city_name = area.city.name
-        area_name = area.name
-        category_name = category.name if category else 'food and drinks'
-
-        # Step 1: Build Exa search queries from user context
-        queries = claude_service.build_exa_queries(city_name, area_name, category_name, deal_type)
-        logger.info(f"Queries: {queries}")
-
-        # Step 2: Exa searches and returns page content
-        raw_results = exa_service.search_deals(queries, num_results_per_query=8)
-        logger.info(f"Exa returned {len(raw_results)} results")
-
-        # Step 3: Extract structured offer data
-        parsed_offers = claude_service.parse_exa_results(raw_results, area_name, category_name)
-        logger.info(f"Parsed {len(parsed_offers)} offers")
-
-        # Step 4: Upsert into DB — key on (restaurant_name, area, deal_type)
-        saved = []
-        for o in parsed_offers:
-            try:
-                offer, _ = Offer.objects.update_or_create(
-                    restaurant_name=o.get('restaurant_name', ''),
-                    area=area,
-                    deal_type=o.get('deal_type', 'BOGO'),
-                    defaults={
-                        'category': category,
-                        'deal_description': o.get('deal_description', '')[:300],
-                        'savings_amount': o.get('savings_amount'),
-                        'savings_percent': o.get('savings_percent'),
-                        'valid_until': o.get('valid_until') or '',
-                        'rating': o.get('rating'),
-                        'review_count': o.get('review_count') or 0,
-                        'distance_km': o.get('distance_km'),
-                        'is_live': bool(o.get('is_live', False)),
-                        'source_url': o.get('source_url') or '',
-                        'thumbnail_emoji': o.get('thumbnail_emoji') or '🍽',
-                    }
-                )
-                saved.append(offer)
-            except Exception as e:
-                logger.error(f"Failed to save offer: {e}")
-
-        session_key = _session_key(request)
-        data = OfferSerializer(saved, many=True, context={'session_key': session_key}).data
-        payload = {'offers': data, 'source': 'live', 'count': len(data)}
-        cache.set(cache_key, payload, settings.CACHE_TTL)
-
-        # Update area deal count
-        Area.objects.filter(pk=area.pk).update(deal_count=Offer.objects.filter(area=area).count())
-
-        return Response(payload)
-
-    except Exception as e:
-        logger.exception(f"Offers fetch failed: {e}")
-        return Response({'error': 'Failed to fetch offers', 'detail': str(e)}, status=500)
+    session_key = _session_key(request)
+    data = OfferSerializer(qs, many=True, context={'session_key': session_key}).data
+    payload = {'offers': data, 'source': 'db', 'count': len(data)}
+    cache.set(cache_key, payload, settings.CACHE_TTL)
+    return Response(payload)
 
 
 # ── Search ───────────────────────────────────────────────────────────────────

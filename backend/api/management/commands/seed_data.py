@@ -95,86 +95,6 @@ CATEGORIES = [
     {'name': 'Sweets',          'slug': 'sweets',         'icon': '🧁', 'is_drink': False, 'sort_order': 20},
 ]
 
-DEMO_OFFERS = [
-    # Bangalore – Indiranagar
-    {
-        'restaurant_name': 'Meghana Foods',
-        'area_slug': 'indiranagar', 'city_slug': 'bangalore', 'category_slug': 'biryani',
-        'deal_type': 'BOGO', 'deal_description': 'BOGO Biryani',
-        'savings_amount': 220, 'valid_until': 'Valid till 11 PM',
-        'rating': 4.6, 'review_count': 1240, 'distance_km': 0.4,
-        'is_live': True, 'thumbnail_emoji': '🍛',
-    },
-    {
-        'restaurant_name': 'Biryani Blues',
-        'area_slug': 'indiranagar', 'city_slug': 'bangalore', 'category_slug': 'biryani',
-        'deal_type': 'COMBO', 'deal_description': 'Combo ₹299 for 2',
-        'savings_amount': 150, 'valid_until': 'Today only',
-        'rating': 4.2, 'review_count': 340, 'distance_km': 0.8,
-        'is_live': False, 'thumbnail_emoji': '🍛',
-    },
-    {
-        'restaurant_name': 'The Biere Club',
-        'area_slug': 'indiranagar', 'city_slug': 'bangalore', 'category_slug': 'craft-beer',
-        'deal_type': 'BOGO', 'deal_description': 'BOGO Craft Pints 4-7 PM',
-        'savings_amount': 350, 'valid_until': 'Happy hours 4–7 PM',
-        'rating': 4.5, 'review_count': 780, 'distance_km': 0.6,
-        'is_live': True, 'thumbnail_emoji': '🍺',
-    },
-    # Gurgaon – Sector 29
-    {
-        'restaurant_name': 'Farzi Cafe',
-        'area_slug': 'sector-29', 'city_slug': 'gurgaon', 'category_slug': 'cocktails',
-        'deal_type': 'BOGO', 'deal_description': 'BOGO Cocktails 5-8 PM',
-        'savings_amount': 400, 'valid_until': 'Happy hours 5–8 PM',
-        'rating': 4.4, 'review_count': 2100, 'distance_km': 0.2,
-        'is_live': True, 'thumbnail_emoji': '🍹',
-    },
-    {
-        'restaurant_name': 'Social',
-        'area_slug': 'sector-29', 'city_slug': 'gurgaon', 'category_slug': 'craft-beer',
-        'deal_type': 'PERCENT_OFF', 'deal_description': '30% off on food + drinks',
-        'savings_percent': 30, 'savings_amount': 300, 'valid_until': 'Weekdays till 7 PM',
-        'rating': 4.3, 'review_count': 3200, 'distance_km': 0.3,
-        'is_live': True, 'thumbnail_emoji': '🍺',
-    },
-    # Pune – Koregaon Park
-    {
-        'restaurant_name': 'Malaka Spice',
-        'area_slug': 'koregaon-park', 'city_slug': 'pune', 'category_slug': 'cocktails',
-        'deal_type': 'BOGO', 'deal_description': 'BOGO Cocktails',
-        'savings_amount': 350, 'valid_until': 'Till 8 PM daily',
-        'rating': 4.5, 'review_count': 890, 'distance_km': 0.5,
-        'is_live': True, 'thumbnail_emoji': '🍹',
-    },
-    # Delhi – Hauz Khas
-    {
-        'restaurant_name': 'Imperfecto',
-        'area_slug': 'hauz-khas', 'city_slug': 'delhi', 'category_slug': 'cocktails',
-        'deal_type': 'BOGO', 'deal_description': 'BOGO on all cocktails',
-        'savings_amount': 450, 'valid_until': 'Happy hours 5–8 PM',
-        'rating': 4.3, 'review_count': 1800, 'distance_km': 0.1,
-        'is_live': True, 'thumbnail_emoji': '🍹',
-    },
-    # Mumbai – Bandra
-    {
-        'restaurant_name': "Pizza Express",
-        'area_slug': 'bandra-west', 'city_slug': 'mumbai', 'category_slug': 'pizza',
-        'deal_type': 'BOGO', 'deal_description': 'BOGO on any Classic Pizza',
-        'savings_amount': 499, 'valid_until': 'Weekends only',
-        'rating': 4.1, 'review_count': 1560, 'distance_km': 0.3,
-        'is_live': True, 'thumbnail_emoji': '🍕',
-    },
-    # Hyderabad – Banjara Hills
-    {
-        'restaurant_name': 'Paradise Biryani',
-        'area_slug': 'banjara-hills', 'city_slug': 'hyderabad', 'category_slug': 'biryani',
-        'deal_type': 'COMBO', 'deal_description': 'Combo Biryani ₹399 for 2',
-        'savings_amount': 200, 'valid_until': 'Daily lunch 12–3 PM',
-        'rating': 4.7, 'review_count': 5400, 'distance_km': 0.4,
-        'is_live': True, 'thumbnail_emoji': '🍛',
-    },
-]
 
 
 class Command(BaseCommand):
@@ -227,31 +147,6 @@ class Command(BaseCommand):
         for c in CATEGORIES:
             cat, _ = Category.objects.update_or_create(slug=c['slug'], defaults=c)
             cat_map[c['slug']] = cat
-
-        self.stdout.write('Seeding demo offers...')
-        for o in DEMO_OFFERS:
-            area = area_map.get(o['area_slug'])
-            cat  = cat_map.get(o['category_slug'])
-            if not area or not cat:
-                self.stdout.write(f"  Skipping {o['restaurant_name']} — area/cat not found")
-                continue
-            Offer.objects.update_or_create(
-                restaurant_name=o['restaurant_name'],
-                area=area,
-                defaults={
-                    'category':        cat,
-                    'deal_type':       o['deal_type'],
-                    'deal_description': o['deal_description'],
-                    'savings_amount':  o.get('savings_amount'),
-                    'savings_percent': o.get('savings_percent'),
-                    'valid_until':     o.get('valid_until', ''),
-                    'rating':          o.get('rating'),
-                    'review_count':    o.get('review_count', 0),
-                    'distance_km':     o.get('distance_km'),
-                    'is_live':         o.get('is_live', False),
-                    'thumbnail_emoji': o.get('thumbnail_emoji', '🍽'),
-                }
-            )
 
         # Sync deal counts
         for area in Area.objects.all():
