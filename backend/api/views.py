@@ -1,13 +1,15 @@
 import csv
 import io
+import secrets
 import logging
+from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.conf import settings
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
-from .models import City, Area, Category, Offer, SavedOffer, SearchHistory
+from .models import City, Area, Category, Offer, SavedOffer, SearchHistory, AdminSession
 from .serializers import (
     CitySerializer, AreaSerializer, CategorySerializer,
     OfferSerializer, SavedOfferSerializer,
@@ -46,6 +48,12 @@ def areas_list(request, city_slug):
 
 
 # ── Categories ──────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+def all_categories(request):
+    categories = Category.objects.all()
+    return Response(CategorySerializer(categories, many=True).data)
+
 
 @api_view(['GET'])
 def categories_list(request, area_slug):
@@ -162,11 +170,39 @@ def toggle_saved(request, offer_id):
     return Response({'saved': True})
 
 
+# ── Admin: Auth ──────────────────────────────────────────────────────────────
+
+def _admin_auth(request):
+    token = request.headers.get('X-Admin-Token', '')
+    return AdminSession.objects.filter(token=token).exists()
+
+
+@api_view(['POST'])
+def admin_login(request):
+    username = request.data.get('username', '').strip()
+    password = request.data.get('password', '').strip()
+    user = authenticate(request, username=username, password=password)
+    if user and user.is_staff:
+        token = secrets.token_hex(32)
+        AdminSession.objects.create(token=token)
+        return Response({'token': token})
+    return Response({'error': 'Invalid credentials'}, status=401)
+
+
+@api_view(['POST'])
+def admin_logout(request):
+    token = request.headers.get('X-Admin-Token', '')
+    AdminSession.objects.filter(token=token).delete()
+    return Response({'ok': True})
+
+
 # ── Admin: CSV Import ─────────────────────────────────────────────────────────
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
 def import_csv(request):
+    if not _admin_auth(request):
+        return Response({'error': 'Unauthorized'}, status=401)
     csv_file = request.FILES.get('csv_file')
     area_slug = request.POST.get('area_slug', '').strip()
     city_slug = request.POST.get('city_slug', '').strip()

@@ -1,3 +1,5 @@
+import os
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from api.models import City, Area, Category, Offer
 
@@ -155,5 +157,18 @@ class Command(BaseCommand):
         for city in City.objects.all():
             city.deal_count = Offer.objects.filter(area__city=city).count()
             city.save(update_fields=['deal_count'])
+
+        # Create/update admin user
+        User = get_user_model()
+        admin_username = os.getenv('ADMIN_USERNAME', 'pratham1906')
+        admin_password = os.getenv('ADMIN_PASSWORD', '')
+        if admin_password:
+            user, created = User.objects.get_or_create(username=admin_username)
+            user.set_password(admin_password)
+            user.is_staff = True
+            user.is_active = True
+            user.save()
+            action = 'Created' if created else 'Updated'
+            self.stdout.write(f'{action} admin user: {admin_username}')
 
         self.stdout.write(self.style.SUCCESS('Seed complete.'))

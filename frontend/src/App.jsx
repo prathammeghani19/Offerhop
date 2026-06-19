@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { AppProvider, useApp, SCREENS } from './context/AppContext'
 import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
@@ -8,6 +9,7 @@ import OffersScreen from './screens/OffersScreen'
 import SearchScreen from './screens/SearchScreen'
 import SavedScreen from './screens/SavedScreen'
 import AdminUploadScreen from './screens/AdminUploadScreen'
+import AdminLoginScreen from './screens/AdminLoginScreen'
 
 function Main() {
   const { activeTab, screen, setScreen } = useApp()
@@ -42,9 +44,21 @@ function AppShell() {
   )
 }
 
+function AdminGate() {
+  const [token, setToken] = useState(localStorage.getItem('admin_token') || '')
+
+  const handleLogin = (t) => setToken(t)
+
+  if (!token) return <AdminLoginScreen onLogin={handleLogin} />
+  return <AdminUploadScreen token={token} onLogout={() => {
+    localStorage.removeItem('admin_token')
+    setToken('')
+  }} />
+}
+
 export default function App() {
   if (window.location.pathname === '/admin') {
-    return <AdminUploadScreen />
+    return <AdminGate />
   }
   return (
     <AppProvider>

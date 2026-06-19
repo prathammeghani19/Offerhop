@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 
 const API = '/api'
 
-export default function AdminUploadScreen() {
+export default function AdminUploadScreen({ token, onLogout }) {
   const [cities, setCities]         = useState([])
   const [areas, setAreas]           = useState([])
   const [categories, setCategories] = useState([])
@@ -18,7 +18,7 @@ export default function AdminUploadScreen() {
 
   useEffect(() => {
     fetch(`${API}/cities/`).then(r => r.json()).then(d => setCities(d))
-    fetch(`${API}/areas/bangalore/categories/`).then(r => r.json()).then(d => setCategories(d.categories || []))
+    fetch(`${API}/categories/`).then(r => r.json()).then(d => setCategories(d))
   }, [])
 
   useEffect(() => {
@@ -47,7 +47,10 @@ export default function AdminUploadScreen() {
     fd.append('category_slug', catSlug)
 
     try {
-      const res = await fetch(`${API}/admin/import-csv/`, { method: 'POST', body: fd })
+      const res = await fetch(`${API}/admin/import-csv/`, {
+        method: 'POST', body: fd,
+        headers: { 'X-Admin-Token': token },
+      })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Import failed'); return }
       setResult(data)
@@ -67,13 +70,22 @@ export default function AdminUploadScreen() {
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ color: '#F9F5EE', fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>
-            Import Deals
-          </h1>
-          <p style={{ color: 'rgba(249,245,238,0.5)', fontSize: 14, marginTop: 6 }}>
-            Upload an Exa Webset CSV — Claude validates and structures the data automatically.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+          <div>
+            <h1 style={{ color: '#F9F5EE', fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>
+              Import Deals
+            </h1>
+            <p style={{ color: 'rgba(249,245,238,0.5)', fontSize: 14, marginTop: 6 }}>
+              Upload an Exa Webset CSV — Claude validates and structures the data automatically.
+            </p>
+          </div>
+          <button onClick={onLogout} style={{
+            color: 'rgba(249,245,238,0.4)', fontSize: 13, padding: '6px 12px',
+            border: '1px solid rgba(249,245,238,0.15)', borderRadius: 8,
+            cursor: 'pointer', background: 'none',
+          }}>
+            Logout
+          </button>
         </div>
 
         {/* Selectors */}

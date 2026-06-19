@@ -98,3 +98,11 @@ class SearchHistory(models.Model):
 
     class Meta:
         ordering = ['-searched_at']
+
+
+class AdminSession(models.Model):
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
