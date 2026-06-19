@@ -64,18 +64,24 @@ export default function CityPickerScreen({ onCitySelect }) {
           </div>
         ) : (
           <div className="city-grid">
-            {filtered.map(city => (
-              <button key={city.id} className="city-card" onClick={() => handleSelect(city)}>
-                <div className="city-card-icon">{city.icon}</div>
-                {city.deal_count > 0 && (
-                  <div className="city-card-badge">{city.deal_count}+ deals</div>
-                )}
-                <div className="city-card-name">{city.name}</div>
-                {city.deal_count === 0 && (
-                  <div className="city-card-meta">Coming soon</div>
-                )}
-              </button>
-            ))}
+            {filtered.map(city => {
+              const hasDeals = city.deal_count > 0
+              return (
+                <button
+                  key={city.id}
+                  className="city-card"
+                  onClick={() => hasDeals && handleSelect(city)}
+                  style={!hasDeals ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
+                >
+                  <div className="city-card-icon">{city.icon}</div>
+                  {hasDeals
+                    ? <div className="city-card-badge">{city.deal_count} deals</div>
+                    : <div className="city-card-meta">Coming soon</div>
+                  }
+                  <div className="city-card-name">{city.name}</div>
+                </button>
+              )
+            })}
           </div>
         )}
       </div>
