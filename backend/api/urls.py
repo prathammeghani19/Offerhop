@@ -10,4 +10,5 @@ urlpatterns = [
     path('search/history/', views.search_history),
     path('saved/', views.saved_list),
     path('saved/<int:offer_id>/toggle/', views.toggle_saved),
+    path('admin/import-csv/', views.import_csv),
 ]

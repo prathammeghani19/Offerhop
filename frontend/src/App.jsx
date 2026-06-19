@@ -7,6 +7,7 @@ import DishPickerScreen from './screens/DishPickerScreen'
 import OffersScreen from './screens/OffersScreen'
 import SearchScreen from './screens/SearchScreen'
 import SavedScreen from './screens/SavedScreen'
+import AdminUploadScreen from './screens/AdminUploadScreen'
 
 function Main() {
   const { activeTab, screen, setScreen } = useApp()
@@ -42,6 +43,9 @@ function AppShell() {
 }
 
 export default function App() {
+  if (window.location.pathname === '/admin') {
+    return <AdminUploadScreen />
+  }
   return (
     <AppProvider>
       <AppShell />

@@ -1,8 +1,10 @@
+import csv
+import io
 import logging
 from django.core.cache import cache
 from django.conf import settings
-from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
 from .models import City, Area, Category, Offer, SavedOffer, SearchHistory
@@ -10,6 +12,7 @@ from .serializers import (
     CitySerializer, AreaSerializer, CategorySerializer,
     OfferSerializer, SavedOfferSerializer,
 )
+from .services import claude_service
 
 logger = logging.getLogger(__name__)
 
@@ -157,3 +160,96 @@ def toggle_saved(request, offer_id):
         return Response({'saved': False})
 
     return Response({'saved': True})
+
+
+# ── Admin: CSV Import ─────────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def import_csv(request):
+    csv_file = request.FILES.get('csv_file')
+    area_slug = request.POST.get('area_slug', '').strip()
+    city_slug = request.POST.get('city_slug', '').strip()
+    category_slug = request.POST.get('category_slug', '').strip()
+
+    if not csv_file or not area_slug or not city_slug or not category_slug:
+        return Response({'error': 'csv_file, area_slug, city_slug, category_slug are all required'}, status=400)
+
+    try:
+        city = City.objects.get(slug=city_slug)
+    except City.DoesNotExist:
+        return Response({'error': f"City '{city_slug}' not found"}, status=404)
+
+    try:
+        area = Area.objects.get(slug=area_slug, city=city)
+    except Area.DoesNotExist:
+        return Response({'error': f"Area '{area_slug}' not found under {city.name}"}, status=404)
+
+    try:
+        category = Category.objects.get(slug=category_slug)
+    except Category.DoesNotExist:
+        return Response({'error': f"Category '{category_slug}' not found"}, status=404)
+
+    # Parse CSV
+    try:
+        content = csv_file.read().decode('utf-8')
+        reader = csv.DictReader(io.StringIO(content))
+        rows = list(reader)
+    except Exception as e:
+        return Response({'error': f'Failed to read CSV: {e}'}, status=400)
+
+    if not rows:
+        return Response({'error': 'CSV file is empty'}, status=400)
+
+    # Claude validates + structures
+    parsed_offers = claude_service.parse_csv_rows(
+        rows,
+        city_name=city.name,
+        area_name=area.name,
+        category_name=category.name,
+        category_slug=category_slug,
+    )
+
+    # Upsert into DB
+    saved_offers = []
+    for o in parsed_offers:
+        try:
+            offer, _ = Offer.objects.update_or_create(
+                restaurant_name=o['restaurant_name'],
+                area=area,
+                deal_type=o['deal_type'],
+                defaults={
+                    'category': category,
+                    'deal_description': o.get('deal_description', '')[:300],
+                    'savings_amount': o.get('savings_amount'),
+                    'savings_percent': o.get('savings_percent'),
+                    'valid_until': o.get('valid_until') or '',
+                    'rating': o.get('rating'),
+                    'review_count': o.get('review_count') or 0,
+                    'is_live': bool(o.get('is_live', False)),
+                    'source_url': o.get('source_url') or '',
+                    'thumbnail_emoji': o.get('thumbnail_emoji') or '🍽',
+                }
+            )
+            saved_offers.append(offer)
+        except Exception as e:
+            logger.error(f"Failed to save offer '{o.get('restaurant_name')}': {e}")
+
+    # Sync deal counts
+    area.deal_count = area.offers.count()
+    area.save(update_fields=['deal_count'])
+    city.deal_count = Offer.objects.filter(area__city=city).count()
+    city.save(update_fields=['deal_count'])
+
+    # Bust cache for this area
+    cache.delete(f"offers:{area_slug}:{category_slug}:ALL")
+
+    session_key = _session_key(request)
+    data = OfferSerializer(saved_offers, many=True, context={'session_key': session_key}).data
+
+    return Response({
+        'imported': len(saved_offers),
+        'total_rows': len(rows),
+        'skipped': len(rows) - len(parsed_offers),
+        'offers': data,
+    })

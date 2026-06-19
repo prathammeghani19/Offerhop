@@ -40,6 +40,156 @@ def _get_claude():
     return anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
+# ── Webset CSV → Structured Offers (Claude validation layer) ──────────────────
+
+def parse_csv_rows(rows: list, city_name: str, area_name: str, category_name: str, category_slug: str) -> list:
+    """
+    Send webset CSV rows to Claude for structured extraction + validation.
+    Returns a list of validated offer dicts ready for DB upsert.
+    Falls back to regex if Claude is unavailable.
+    """
+    if not rows:
+        return []
+
+    emoji = _emoji_for(category_slug)
+
+    if settings.ANTHROPIC_API_KEY:
+        try:
+            return _claude_parse_csv(rows, city_name, area_name, category_name, category_slug, emoji)
+        except Exception as e:
+            logger.error(f"Claude CSV parsing failed: {e}")
+
+    return _regex_parse_csv(rows, area_name, category_name, emoji)
+
+
+def _claude_parse_csv(rows, city_name, area_name, category_name, category_slug, emoji):
+    entries = []
+    for i, r in enumerate(rows):
+        title = (r.get('Title') or '').strip()
+        url = (r.get('URL') or '').strip()
+        summary = (r.get('Offer Summary (Result)') or '').strip()
+        details = (r.get('Offer Details (Result)') or '').strip()
+        desc = (r.get('Description') or '')[:300].strip()
+        entries.append(
+            f"[{i+1}] {title}\nURL: {url}\nOffer: {summary}\nDetails: {details}\nDesc: {desc}"
+        )
+
+    prompt = f"""You are structuring restaurant deal data for OffferHop, a food & drink deals app for Indian cities.
+
+Category: {category_name}
+Area: {area_name}, City: {city_name}
+
+For each entry below, extract the deal and return a JSON array.
+
+SCHEMA (each object):
+{{
+  "restaurant_name": "Clean venue name only (no city/platform suffixes)",
+  "deal_type": "BOGO" or "COMBO" or "PERCENT_OFF",
+  "deal_description": "One punchy line describing the exact deal, max 150 chars",
+  "savings_amount": null or number in INR,
+  "savings_percent": null or integer 5-80,
+  "valid_until": null or short string like "Daily till 7 PM",
+  "rating": null or float 1.0-5.0,
+  "is_live": true or false,
+  "source_url": "exact URL from entry",
+  "include": true or false
+}}
+
+RULES:
+- "include": true only if this is a real restaurant deal (happy hours, BOGO, combo, % off food/drinks)
+- "include": false for bank/card offers, fintech cashback, delivery promo codes
+- Happy hour beer/cocktail deals → BOGO
+- Set menus / combo platters → COMBO
+- Percentage discounts → PERCENT_OFF
+
+ENTRIES:
+{chr(10).join(entries)}
+
+Return ONLY the JSON array."""
+
+    client = _get_claude()
+    msg = client.messages.create(
+        model='claude-sonnet-4-6',
+        max_tokens=4096,
+        messages=[{'role': 'user', 'content': prompt}],
+    )
+
+    parsed = _extract_json_array(msg.content[0].text.strip())
+    if not parsed:
+        logger.warning("Claude returned no parseable JSON; falling back to regex")
+        return _regex_parse_csv(rows, area_name, category_name, emoji)
+
+    offers = []
+    for o in parsed:
+        if not o.get('include', True):
+            continue
+        name = str(o.get('restaurant_name') or '').strip()[:200]
+        url = str(o.get('source_url') or '').strip()
+        if not name:
+            continue
+        dtype = o.get('deal_type', 'BOGO')
+        if dtype not in ('BOGO', 'COMBO', 'PERCENT_OFF'):
+            dtype = 'BOGO'
+        offers.append({
+            'restaurant_name': name,
+            'deal_type': dtype,
+            'deal_description': str(o.get('deal_description') or '')[:300],
+            'savings_amount': _safe_float(o.get('savings_amount')),
+            'savings_percent': _safe_int(o.get('savings_percent')),
+            'valid_until': str(o.get('valid_until') or '')[:80],
+            'rating': _safe_float(o.get('rating')),
+            'review_count': 0,
+            'is_live': bool(o.get('is_live', False)),
+            'source_url': url[:500],
+            'thumbnail_emoji': emoji,
+        })
+
+    logger.info(f"Claude validated {len(offers)}/{len(rows)} CSV rows as real offers")
+    return offers
+
+
+def _regex_parse_csv(rows, area_name, category_name, emoji):
+    results = []
+    for r in rows:
+        title = (r.get('Title') or '').strip()
+        url = (r.get('URL') or '').strip()
+        text = ' '.join([
+            r.get('Offer Summary (Result)') or '',
+            r.get('Offer Details (Result)') or '',
+            r.get('Description') or '',
+        ])
+        if not text.strip():
+            continue
+
+        dtype = _detect_deal_type_csv(text)
+        results.append({
+            'restaurant_name': _clean_title_csv(title)[:200],
+            'deal_type': dtype,
+            'deal_description': (r.get('Offer Summary (Result)') or f'{dtype} {category_name}')[:300],
+            'savings_amount': None,
+            'savings_percent': None,
+            'valid_until': '',
+            'rating': None,
+            'review_count': 0,
+            'is_live': bool(re.search(r'happy.?hour|open now|daily|today', text, re.I)),
+            'source_url': url[:500],
+            'thumbnail_emoji': emoji,
+        })
+    return results
+
+
+def _detect_deal_type_csv(text):
+    if re.search(r'bogo|buy.?one.?get.?one|1\+1|buy 1 get 1', text, re.I): return 'BOGO'
+    if re.search(r'\bcombo\b|for 2\b|set menu|meal deal', text, re.I): return 'COMBO'
+    if re.search(r'\d+\s*%\s*off|\d+ percent off', text, re.I): return 'PERCENT_OFF'
+    return 'BOGO'
+
+
+def _clean_title_csv(title):
+    title = re.sub(r'\s*[|\-–]\s*(Bangalore|Bengaluru|Book Table|Order Online|Zomato|Swiggy|Dineout|EazyDiner).*', '', title, flags=re.I)
+    return title.strip()
+
+
 # ── Query Building ────────────────────────────────────────────────────────────
 
 def build_exa_queries(city: str, area: str, category: str, deal_type: str) -> list:
