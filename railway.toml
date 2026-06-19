@@ -1,9 +1,4 @@
-[build]
-builder = "nixpacks"
-buildCommand = "cd frontend && npm install && npm run build && cd ../backend && python3 -m pip install -r requirements.txt && python3 manage.py collectstatic --noinput && python3 manage.py migrate && python3 manage.py seed_data"
-
 [deploy]
-startCommand = "cd backend && python3 -m gunicorn offerhop_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
 healthcheckPath = "/api/cities/"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
