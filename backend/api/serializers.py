@@ -9,9 +9,15 @@ class AreaSerializer(serializers.ModelSerializer):
 
 
 class CitySerializer(serializers.ModelSerializer):
+    deal_count = serializers.SerializerMethodField()
+
     class Meta:
         model = City
         fields = ['id', 'name', 'slug', 'icon', 'description', 'deal_count']
+
+    def get_deal_count(self, obj):
+        from .models import Offer
+        return Offer.objects.filter(area__city=obj).count()
 
 
 class CityDetailSerializer(serializers.ModelSerializer):

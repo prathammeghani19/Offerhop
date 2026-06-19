@@ -48,7 +48,7 @@ export default function AreaPickerScreen({ onBack, onAreaSelect }) {
         </div>
       </div>
 
-      <div className="container page-section" style={{ maxWidth: 720 }}>
+      <div className="container page-section">
         {/* Search */}
         <div className="search-bar" style={{ marginBottom: 24 }}>
           <svg viewBox="0 0 14 14" fill="none" stroke="#9A9A9A" strokeWidth="1.6" strokeLinecap="round">
@@ -58,7 +58,6 @@ export default function AreaPickerScreen({ onBack, onAreaSelect }) {
             placeholder={`Search areas in ${city?.name || ''}…`}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            autoFocus
           />
         </div>
 
