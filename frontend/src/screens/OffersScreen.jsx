@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchOffers } from '../api/client'
 import { useApp } from '../context/AppContext'
 import OfferCard from '../components/OfferCard'
+import OfferModal from '../components/OfferModal'
 import SkeletonCard from '../components/SkeletonCard'
 
 const FOOD_FILTERS   = ['All', 'BOGO', 'Combo', '% Off', 'Open Now']
@@ -17,6 +18,7 @@ const DRINK_SLUGS = ['beer', 'cocktails', 'mocktails', 'craft-beer', 'spirits']
 export default function OffersScreen({ onBack, onBackToArea }) {
   const { city, area, category } = useApp()
   const [activeFilter, setActiveFilter] = useState('All')
+  const [selectedOffer, setSelectedOffer] = useState(null)
 
   const isDrink = DRINK_SLUGS.includes(category?.slug)
   const FILTERS = isDrink ? DRINKS_FILTERS : FOOD_FILTERS
@@ -126,10 +128,16 @@ export default function OffersScreen({ onBack, onBackToArea }) {
 
         {!isLoading && !isError && offers.length > 0 && (
           <div className="offers-grid">
-            {offers.map(offer => <OfferCard key={offer.id} offer={offer} />)}
+            {offers.map(offer => (
+              <OfferCard key={offer.id} offer={offer} onClick={() => setSelectedOffer(offer)} />
+            ))}
           </div>
         )}
       </div>
+
+      {selectedOffer && (
+        <OfferModal offer={selectedOffer} onClose={() => setSelectedOffer(null)} />
+      )}
     </div>
   )
 }

@@ -2,8 +2,19 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toggleSaved } from '../api/client'
 
-export default function OfferCard({ offer }) {
+function getFaviconUrl(sourceUrl) {
+  if (!sourceUrl) return null
+  try {
+    const domain = new URL(sourceUrl).hostname
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`
+  } catch {
+    return null
+  }
+}
+
+export default function OfferCard({ offer, onClick }) {
   const [saved, setSaved] = useState(offer.is_saved)
+  const [logoFailed, setLogoFailed] = useState(false)
   const qc = useQueryClient()
 
   const mutation = useMutation({
@@ -15,15 +26,28 @@ export default function OfferCard({ offer }) {
   })
 
   const dealPrefix = { BOGO: '🍔 BOGO', COMBO: '🍱 Combo', PERCENT_OFF: '🏷' }[offer.deal_type] || '🏷'
+  const faviconUrl = getFaviconUrl(offer.source_url)
 
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${offer.restaurant_name} ${offer.area_name} ${offer.city_name}`
   )}`
 
   return (
-    <div className="offer-card">
+    <div className="offer-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
       <div className="oc-top">
-        <div className="oc-thumb">{offer.thumbnail_emoji || '🍽'}</div>
+        <div className="oc-thumb">
+          {faviconUrl && !logoFailed
+            ? (
+              <img
+                src={faviconUrl}
+                alt=""
+                style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'contain' }}
+                onError={() => setLogoFailed(true)}
+              />
+            )
+            : offer.thumbnail_emoji || '🍽'
+          }
+        </div>
         <div className="oc-info">
           <div className="oc-info-row">
             <div className="oc-name">{offer.restaurant_name}</div>
@@ -75,10 +99,9 @@ export default function OfferCard({ offer }) {
               ? `You save ${offer.savings_percent}%`
               : 'Great deal'}
         </div>
-        {offer.source_url
-          ? <a href={offer.source_url} target="_blank" rel="noopener noreferrer" className="view-offer">View Offer →</a>
-          : <span className="view-offer">View Offer →</span>
-        }
+        <span className="view-offer" onClick={(e) => { e.stopPropagation(); if (onClick) onClick() }}>
+          View Details →
+        </span>
       </div>
     </div>
   )

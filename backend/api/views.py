@@ -257,6 +257,7 @@ def import_csv(request):
                 defaults={
                     'category': category,
                     'deal_description': o.get('deal_description', '')[:300],
+                    'offer_detail': o.get('offer_detail') or '',
                     'savings_amount': o.get('savings_amount'),
                     'savings_percent': o.get('savings_percent'),
                     'valid_until': o.get('valid_until') or '',

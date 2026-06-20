@@ -92,6 +92,7 @@ SCHEMA (each object):
   "rating": null or float 1.0-5.0,
   "is_live": true or false,
   "source_url": "exact URL from entry",
+  "offer_detail": "Full offer details — terms, timing, applicable items. Copy from Details field if good, else summarise.",
   "include": true or false
 }}
 
@@ -134,6 +135,7 @@ Return ONLY the JSON array."""
             'restaurant_name': name,
             'deal_type': dtype,
             'deal_description': str(o.get('deal_description') or '')[:300],
+            'offer_detail': str(o.get('offer_detail') or ''),
             'savings_amount': _safe_float(o.get('savings_amount')),
             'savings_percent': _safe_int(o.get('savings_percent')),
             'valid_until': str(o.get('valid_until') or '')[:80],
@@ -166,6 +168,7 @@ def _regex_parse_csv(rows, area_name, category_name, emoji):
             'restaurant_name': _clean_title_csv(title)[:200],
             'deal_type': dtype,
             'deal_description': (r.get('Offer Summary (Result)') or f'{dtype} {category_name}')[:300],
+            'offer_detail': (r.get('Offer Details (Result)') or '').strip(),
             'savings_amount': None,
             'savings_percent': None,
             'valid_until': '',

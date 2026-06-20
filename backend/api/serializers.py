@@ -52,7 +52,7 @@ class OfferSerializer(serializers.ModelSerializer):
         model = Offer
         fields = [
             'id', 'restaurant_name', 'area_name', 'city_name', 'category_name',
-            'deal_type', 'deal_description', 'savings_amount', 'savings_percent',
+            'deal_type', 'deal_description', 'offer_detail', 'savings_amount', 'savings_percent',
             'valid_until', 'rating', 'review_count', 'distance_km',
             'is_live', 'source_url', 'thumbnail_emoji', 'is_saved',
         ]

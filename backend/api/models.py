@@ -60,6 +60,7 @@ class Offer(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='offers')
     deal_type = models.CharField(max_length=20, choices=DEAL_TYPE_CHOICES)
     deal_description = models.CharField(max_length=300)
+    offer_detail = models.TextField(blank=True, default='')
     savings_amount = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     savings_percent = models.IntegerField(null=True, blank=True)
     valid_until = models.CharField(max_length=100, blank=True)
