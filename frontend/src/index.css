@@ -203,6 +203,11 @@ a { color: inherit; text-decoration: none; }
   white-space: nowrap;
 }
 .section-hdr span { font-size: 12px; color: var(--gray); white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 640px) {
+  .section-hdr { margin-bottom: 14px; }
+  .section-hdr h2 { font-size: 16px; }
+  .section-hdr span { font-size: 11px; }
+}
 
 /* ── City Grid ── */
 .city-grid {
@@ -272,6 +277,10 @@ a { color: inherit; text-decoration: none; }
 
 .back-bar-title { font-size: 20px; font-weight: 800; color: var(--black); letter-spacing: -0.5px; }
 .back-bar-sub { font-size: 13px; color: var(--gray-dark); margin-top: 2px; }
+@media (max-width: 640px) {
+  .back-bar-title { font-size: 17px; }
+  .back-bar-sub { font-size: 12px; }
+}
 
 /* ── Breadcrumb ── */
 .breadcrumb {
@@ -647,7 +656,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Page section spacing ── */
 .page-section { padding: 32px 0; }
-@media (max-width: 640px) { .page-section { padding: 20px 0; } }
+@media (max-width: 640px) { .page-section { padding: 24px 0 32px; } }
 
 /* ══════════════════════════════════════════════
    MOBILE — Global touch & scroll foundations
@@ -681,12 +690,6 @@ input, select, textarea {
   padding-bottom: env(safe-area-inset-bottom);
   height: calc(60px + env(safe-area-inset-bottom));
 }
-@media (max-width: 768px) {
-  .page-body {
-    padding-top: 0;
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
-  }
-}
 
 /* ── Filter rail: horizontal scroll on mobile, no wrap ── */
 @media (max-width: 640px) {
@@ -715,29 +718,30 @@ input, select, textarea {
   .offers-grid { gap: 10px; }
 }
 
-/* ── Dish grid: 3 cols on mobile instead of 2 (more browseable) ── */
+/* ── Dish grid: 3 cols on mobile ── */
 @media (max-width: 600px) {
   .dish-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 10px;
   }
   .dish-tile {
-    padding: 14px 8px 12px;
+    padding: 16px 8px 14px;
     border-radius: 12px;
   }
-  .dish-tile-icon { font-size: 26px; }
+  .dish-tile-icon { font-size: 28px; }
   .dish-tile-name { font-size: 11px; }
 }
 @media (max-width: 360px) {
   .dish-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ── City grid: tighter on mobile ── */
+/* ── City grid: mobile ── */
 @media (max-width: 480px) {
-  .city-grid { gap: 8px; }
-  .city-card { padding: 14px 12px 12px; border-radius: 12px; }
-  .city-card-icon { font-size: 22px; }
+  .city-grid { gap: 10px; }
+  .city-card { padding: 16px 14px 14px; border-radius: 14px; }
+  .city-card-icon { font-size: 24px; margin-bottom: 6px; }
   .city-card-name { font-size: 14px; }
+  .city-card-meta { font-size: 12px; }
 }
 
 /* ── Back button: bigger tap target ── */
@@ -749,20 +753,26 @@ input, select, textarea {
 
 /* ── Offers top bar: tighter on mobile ── */
 @media (max-width: 640px) {
-  .offers-top-bar { padding: 16px 0 0; }
-  .offers-title-block h1 { font-size: 18px; }
+  .offers-top-bar { padding: 20px 0 0; }
+  .offers-title-block h1 { font-size: 19px; }
 }
 
-/* ── Page hero: tighter on mobile ── */
+/* ── Page hero: mobile ── */
 @media (max-width: 640px) {
-  .page-hero { padding: 20px 0 16px; }
-  .page-title { font-size: 20px; }
+  .page-hero { padding: 28px 0 22px; }
+  .page-title { font-size: 22px; margin-bottom: 16px; }
+  .page-eyebrow { font-size: 11px; margin-bottom: 6px; }
 }
 
-/* ── Area list: bigger touch targets ── */
+/* ── Area list: bigger touch targets + spacing ── */
 @media (max-width: 768px) {
-  .area-item { padding: 16px 0; }
-  .area-item-name { font-size: 15px; }
+  .area-item { padding: 18px 0; }
+  .area-item-name { font-size: 16px; }
+  .zone-label {
+    font-size: 11px;
+    padding: 20px 0 6px;
+    letter-spacing: 0.1em;
+  }
 }
 
 /* ── Momentum scrolling on scrollable containers ── */
