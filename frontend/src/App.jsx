@@ -50,10 +50,8 @@ function AdminGate() {
   const handleLogin = (t) => setToken(t)
 
   if (!token) return <AdminLoginScreen onLogin={handleLogin} />
-  return <AdminUploadScreen token={token} onLogout={() => {
-    localStorage.removeItem('admin_token')
-    setToken('')
-  }} />
+  const clearToken = () => { localStorage.removeItem('admin_token'); setToken('') }
+  return <AdminUploadScreen token={token} onLogout={clearToken} onInvalidToken={clearToken} />
 }
 
 export default function App() {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 
 const API = '/api'
 
-export default function AdminUploadScreen({ token, onLogout }) {
+export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
   const [cities, setCities]         = useState([])
   const [areas, setAreas]           = useState([])
   const [categories, setCategories] = useState([])
@@ -52,6 +52,7 @@ export default function AdminUploadScreen({ token, onLogout }) {
         headers: { 'X-Admin-Token': token },
       })
       const data = await res.json()
+      if (res.status === 401) { onInvalidToken?.(); return }
       if (!res.ok) { setError(data.error || 'Import failed'); return }
       setResult(data)
     } catch (e) {
@@ -79,13 +80,22 @@ export default function AdminUploadScreen({ token, onLogout }) {
               Upload an Exa Webset CSV — Claude validates and structures the data automatically.
             </p>
           </div>
-          <button onClick={onLogout} style={{
-            color: 'rgba(249,245,238,0.4)', fontSize: 13, padding: '6px 12px',
-            border: '1px solid rgba(249,245,238,0.15)', borderRadius: 8,
-            cursor: 'pointer', background: 'none',
-          }}>
-            Logout
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <a href="/" style={{
+              color: 'rgba(249,245,238,0.4)', fontSize: 13, padding: '6px 12px',
+              border: '1px solid rgba(249,245,238,0.15)', borderRadius: 8,
+              cursor: 'pointer', textDecoration: 'none',
+            }}>
+              ← View App
+            </a>
+            <button onClick={onLogout} style={{
+              color: 'rgba(249,245,238,0.4)', fontSize: 13, padding: '6px 12px',
+              border: '1px solid rgba(249,245,238,0.15)', borderRadius: 8,
+              cursor: 'pointer', background: 'none',
+            }}>
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Selectors */}
