@@ -1,6 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 const API = '/api'
+
+const STEPS = [
+  { pct: 8,  label: 'Uploading CSV...',              icon: '📤' },
+  { pct: 30, label: 'Claude is reading your rows…',  icon: '🤖' },
+  { pct: 60, label: 'Validating deals…',             icon: '✅' },
+  { pct: 82, label: 'Filtering duplicates…',         icon: '🔍' },
+  { pct: 94, label: 'Saving to database…',           icon: '💾' },
+]
 
 export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
   const [cities, setCities]         = useState([])
@@ -12,9 +20,12 @@ export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
   const [file, setFile]             = useState(null)
   const [dragging, setDragging]     = useState(false)
   const [loading, setLoading]       = useState(false)
+  const [progress, setProgress]     = useState(0)
+  const [stepIdx, setStepIdx]       = useState(0)
   const [result, setResult]         = useState(null)
   const [error, setError]           = useState('')
-  const fileRef = useRef()
+  const fileRef   = useRef()
+  const timerRef  = useRef()
 
   useEffect(() => {
     fetch(`${API}/cities/`).then(r => r.json()).then(d => setCities(d))
@@ -28,6 +39,29 @@ export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
       .then(d => { setAreas(d.areas || []); setAreaSlug('') })
   }, [citySlug])
 
+  const startProgress = useCallback(() => {
+    setProgress(0)
+    setStepIdx(0)
+    let pct = 0
+    let sIdx = 0
+    timerRef.current = setInterval(() => {
+      pct += 1
+      setProgress(pct)
+      const next = STEPS.findIndex(s => s.pct > pct)
+      const cur  = next === -1 ? STEPS.length - 1 : Math.max(0, next - 1)
+      setStepIdx(cur)
+      if (pct >= 94) clearInterval(timerRef.current)
+    }, 300) // ~28 seconds to reach 94%
+  }, [])
+
+  const stopProgress = useCallback((success) => {
+    clearInterval(timerRef.current)
+    if (success) {
+      setProgress(100)
+      setStepIdx(STEPS.length - 1)
+    }
+  }, [])
+
   const handleDrop = (e) => {
     e.preventDefault(); setDragging(false)
     const f = e.dataTransfer.files[0]
@@ -38,7 +72,8 @@ export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
     if (!file || !citySlug || !areaSlug || !catSlug) {
       setError('Please select city, area, category and a CSV file.'); return
     }
-    setError(''); setLoading(true); setResult(null)
+    setError(''); setResult(null); setLoading(true)
+    startProgress()
 
     const fd = new FormData()
     fd.append('csv_file', file)
@@ -52,10 +87,12 @@ export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
         headers: { 'X-Admin-Token': token },
       })
       const data = await res.json()
-      if (res.status === 401) { onInvalidToken?.(); return }
-      if (!res.ok) { setError(data.error || 'Import failed'); return }
+      if (res.status === 401) { stopProgress(false); onInvalidToken?.(); return }
+      if (!res.ok) { stopProgress(false); setError(data.error || 'Import failed'); return }
+      stopProgress(true)
       setResult(data)
     } catch (e) {
+      stopProgress(false)
       setError('Network error: ' + e.message)
     } finally {
       setLoading(false)
@@ -158,17 +195,61 @@ export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
           </div>
         )}
 
-        <button onClick={handleSubmit} disabled={loading || !file || !citySlug || !areaSlug || !catSlug}
-          style={{
-            width: '100%', padding: '14px', borderRadius: 10, fontSize: 15, fontWeight: 700,
-            background: loading || !file || !citySlug || !areaSlug || !catSlug ? 'rgba(249,245,238,0.15)' : '#FDE68A',
-            color: loading || !file || !citySlug || !areaSlug || !catSlug ? 'rgba(249,245,238,0.4)' : '#0B1F3A',
-            cursor: loading || !file || !citySlug || !areaSlug || !catSlug ? 'not-allowed' : 'pointer',
-            transition: 'all 0.15s',
-          }}
-        >
-          {loading ? 'Claude is processing...' : 'Import via Claude'}
-        </button>
+        {loading ? (
+          <div style={{
+            background: 'rgba(255,255,255,0.05)', borderRadius: 12,
+            padding: '20px 24px', border: '1px solid rgba(249,245,238,0.1)',
+          }}>
+            {/* Step label */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <span style={{ fontSize: 22 }}>{STEPS[stepIdx].icon}</span>
+              <span style={{ color: '#F9F5EE', fontSize: 14, fontWeight: 600 }}>
+                {progress >= 100 ? '✅ Import complete!' : STEPS[stepIdx].label}
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${progress}%`,
+                background: progress >= 100 ? '#86EFAC' : '#FDE68A',
+                borderRadius: 99,
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+
+            {/* Steps row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
+              {STEPS.map((s, i) => (
+                <div key={i} style={{
+                  fontSize: 10, color: i <= stepIdx ? 'rgba(253,230,138,0.9)' : 'rgba(249,245,238,0.25)',
+                  fontWeight: i === stepIdx ? 700 : 400,
+                  transition: 'color 0.3s',
+                  maxWidth: 60, textAlign: 'center',
+                }}>
+                  {s.icon}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ color: 'rgba(249,245,238,0.35)', fontSize: 12, marginTop: 10 }}>
+              This usually takes 15–30 seconds depending on CSV size…
+            </div>
+          </div>
+        ) : (
+          <button onClick={handleSubmit} disabled={!file || !citySlug || !areaSlug || !catSlug}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 10, fontSize: 15, fontWeight: 700,
+              background: !file || !citySlug || !areaSlug || !catSlug ? 'rgba(249,245,238,0.15)' : '#FDE68A',
+              color: !file || !citySlug || !areaSlug || !catSlug ? 'rgba(249,245,238,0.4)' : '#0B1F3A',
+              cursor: !file || !citySlug || !areaSlug || !catSlug ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            Import via Claude
+          </button>
+        )}
 
         {/* Results */}
         {result && (
