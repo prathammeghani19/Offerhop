@@ -1,11 +1,16 @@
-import { useApp } from '../context/AppContext'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function BottomNav() {
-  const { activeTab, setActiveTab } = useApp()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  const activeTab = pathname === '/search' ? 'search'
+                  : pathname === '/saved'  ? 'saved'
+                  : 'home'
 
   const items = [
     {
-      id: 'home', label: 'Home',
+      id: 'home', label: 'Home', path: '/',
       icon: (active) => (
         <svg viewBox="0 0 20 20" fill="none"
           stroke={active ? '#C2410C' : '#9A9A9A'}
@@ -16,7 +21,7 @@ export default function BottomNav() {
       ),
     },
     {
-      id: 'search', label: 'Search',
+      id: 'search', label: 'Search', path: '/search',
       icon: (active) => (
         <svg viewBox="0 0 20 20" fill="none"
           stroke={active ? '#C2410C' : '#9A9A9A'}
@@ -27,7 +32,7 @@ export default function BottomNav() {
       ),
     },
     {
-      id: 'saved', label: 'Saved',
+      id: 'saved', label: 'Saved', path: '/saved',
       icon: (active) => (
         <svg viewBox="0 0 20 20" fill="none"
           stroke={active ? '#C2410C' : '#9A9A9A'}
@@ -47,7 +52,7 @@ export default function BottomNav() {
             <button
               key={item.id}
               className={`bnav-item ${active ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => navigate(item.path)}
             >
               {item.icon(active)}
               <span className="bnav-label" style={active ? { color: '#C2410C' } : {}}>

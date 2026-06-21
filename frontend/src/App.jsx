@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { AppProvider, useApp, SCREENS } from './context/AppContext'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
+import { AppProvider } from './context/AppContext'
 import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
 import CityPickerScreen from './screens/CityPickerScreen'
@@ -11,56 +13,44 @@ import SavedScreen from './screens/SavedScreen'
 import AdminUploadScreen from './screens/AdminUploadScreen'
 import AdminLoginScreen from './screens/AdminLoginScreen'
 
-function Main() {
-  const { activeTab, screen, setScreen } = useApp()
-
-  if (activeTab === 'search') return <SearchScreen />
-  if (activeTab === 'saved') return <SavedScreen />
-
-  switch (screen) {
-    case SCREENS.CITY:
-      return <CityPickerScreen onCitySelect={() => setScreen(SCREENS.AREA)} />
-    case SCREENS.AREA:
-      return <AreaPickerScreen onBack={() => setScreen(SCREENS.CITY)} onAreaSelect={() => setScreen(SCREENS.DISH)} />
-    case SCREENS.DISH:
-      return <DishPickerScreen onBack={() => setScreen(SCREENS.AREA)} onCategorySelect={() => setScreen(SCREENS.OFFERS)} />
-    case SCREENS.OFFERS:
-      return <OffersScreen onBack={() => setScreen(SCREENS.DISH)} onBackToArea={() => setScreen(SCREENS.AREA)} />
-    default:
-      return <CityPickerScreen onCitySelect={() => setScreen(SCREENS.AREA)} />
-  }
+function AdminGate() {
+  const [token, setToken] = useState(localStorage.getItem('admin_token') || '')
+  const clearToken = () => { localStorage.removeItem('admin_token'); setToken('') }
+  if (!token) return <AdminLoginScreen onLogin={(t) => setToken(t)} />
+  return <AdminUploadScreen token={token} onLogout={clearToken} onInvalidToken={clearToken} />
 }
 
 function AppShell() {
-  const { resetToHome } = useApp()
+  const navigate = useNavigate()
   return (
     <div className="app">
-      <Navbar onLogoClick={resetToHome} />
+      <Navbar onLogoClick={() => navigate('/')} />
       <main className="page-body">
-        <Main />
+        <Routes>
+          <Route path="/"                                   element={<CityPickerScreen />} />
+          <Route path="/search"                             element={<SearchScreen />} />
+          <Route path="/saved"                              element={<SavedScreen />} />
+          <Route path="/:citySlug"                          element={<AreaPickerScreen />} />
+          <Route path="/:citySlug/:areaSlug"                element={<DishPickerScreen />} />
+          <Route path="/:citySlug/:areaSlug/:categorySlug"  element={<OffersScreen />} />
+        </Routes>
       </main>
       <BottomNav />
     </div>
   )
 }
 
-function AdminGate() {
-  const [token, setToken] = useState(localStorage.getItem('admin_token') || '')
-
-  const handleLogin = (t) => setToken(t)
-
-  if (!token) return <AdminLoginScreen onLogin={handleLogin} />
-  const clearToken = () => { localStorage.removeItem('admin_token'); setToken('') }
-  return <AdminUploadScreen token={token} onLogout={clearToken} onInvalidToken={clearToken} />
-}
-
 export default function App() {
-  if (window.location.pathname === '/admin') {
-    return <AdminGate />
+  if (window.location.pathname.startsWith('/admin')) {
+    return <HelmetProvider><AdminGate /></HelmetProvider>
   }
   return (
-    <AppProvider>
-      <AppShell />
-    </AppProvider>
+    <HelmetProvider>
+      <BrowserRouter>
+        <AppProvider>
+          <AppShell />
+        </AppProvider>
+      </BrowserRouter>
+    </HelmetProvider>
   )
 }

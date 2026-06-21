@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://offerhop.in/sitemap.xml

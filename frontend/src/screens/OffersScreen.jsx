@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
-import { fetchOffers } from '../api/client'
+import { fetchCities, fetchAreas, fetchCategories, fetchOffers } from '../api/client'
 import { useApp } from '../context/AppContext'
 import OfferCard from '../components/OfferCard'
 import OfferModal from '../components/OfferModal'
@@ -12,25 +14,54 @@ const FILTER_MAP = {
   All: 'ALL', BOGO: 'BOGO', Combo: 'COMBO',
   '% Off': 'PERCENT_OFF', 'Happy Hours': 'ALL', 'Open Now': 'ALL',
 }
-
 const DRINK_SLUGS = ['beer', 'cocktails', 'mocktails', 'craft-beer', 'spirits']
 
-export default function OffersScreen({ onBack, onBackToArea }) {
-  const { city, area, category } = useApp()
-  const [activeFilter, setActiveFilter] = useState('All')
-  const [selectedOffer, setSelectedOffer] = useState(null)
+const CAT_TITLE = {
+  'beer': 'Beer Deals & Happy Hours', 'cocktails': 'Cocktail Offers & Happy Hours',
+  'mocktails': 'Mocktail Deals', 'craft-beer': 'Craft Beer Deals & Happy Hours',
+  'spirits': 'Spirits & Whisky Deals', 'biryani': 'Biryani Deals & Offers',
+  'pizza': 'Pizza Deals & BOGO Offers', 'burger': 'Burger Deals & Combos',
+  'burgers': 'Burger Deals & Combos', 'pasta': 'Pasta Deals', 'chinese': 'Chinese Food Deals',
+  'desserts': 'Dessert Offers', 'sandwich': 'Sandwich Deals', 'bakery': 'Bakery Offers',
+}
 
-  const isDrink = DRINK_SLUGS.includes(category?.slug)
+export default function OffersScreen() {
+  const { citySlug, areaSlug, categorySlug } = useParams()
+  const navigate                              = useNavigate()
+  const { setCity, setArea, setCategory }     = useApp()
+  const [activeFilter, setActiveFilter]       = useState('All')
+  const [selectedOffer, setSelectedOffer]     = useState(null)
+
+  const { data: cities = [] } = useQuery({ queryKey: ['cities'], queryFn: fetchCities })
+  const city = cities.find(c => c.slug === citySlug) || null
+
+  const { data: areasData } = useQuery({
+    queryKey: ['areas', citySlug],
+    queryFn: () => fetchAreas(citySlug),
+    enabled: !!citySlug,
+  })
+  const area = areasData?.areas?.find(a => a.slug === areaSlug) || null
+
+  const { data: catsData } = useQuery({
+    queryKey: ['categories', areaSlug],
+    queryFn: () => fetchCategories(areaSlug),
+    enabled: !!areaSlug,
+  })
+  const category = catsData?.categories?.find(c => c.slug === categorySlug) || null
+
+  useEffect(() => { if (city) setCity(city) },     [city?.id])
+  useEffect(() => { if (area) setArea(area) },     [area?.id])
+  useEffect(() => { if (category) setCategory(category) }, [category?.id])
+  useEffect(() => { setActiveFilter('All') },       [categorySlug])
+
+  const isDrink = DRINK_SLUGS.includes(categorySlug)
   const FILTERS = isDrink ? DRINKS_FILTERS : FOOD_FILTERS
-
-  useEffect(() => { setActiveFilter('All') }, [category?.slug])
-
   const dealType = FILTER_MAP[activeFilter] || 'ALL'
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['offers', area?.slug, category?.slug, dealType],
-    queryFn: () => fetchOffers({ areaSlug: area?.slug, categorySlug: category?.slug, dealType }),
-    enabled: !!area?.slug,
+    queryKey: ['offers', areaSlug, categorySlug, dealType],
+    queryFn: () => fetchOffers({ areaSlug, categorySlug: categorySlug, dealType }),
+    enabled: !!areaSlug,
   })
 
   const allOffers = data?.offers || []
@@ -42,102 +73,121 @@ export default function OffersScreen({ onBack, onBackToArea }) {
     return allOffers
   })()
 
-  const title = category ? `${category.name} in ${area?.name}` : `Deals in ${area?.name}`
+  const cityName    = city?.name     || citySlug
+  const areaName    = area?.name     || areaSlug
+  const catName     = category?.name || categorySlug
+  const catTitle    = CAT_TITLE[categorySlug] || `${catName} Deals`
+  const pageTitle   = `${catTitle} in ${areaName}, ${cityName}`
+  const metaDesc    = `Find the best ${catName.toLowerCase()} deals, BOGO offers and discounts in ${areaName}, ${cityName}. ${offers.length > 0 ? `${offers.length} live deals` : 'Save on your next meal or night out'} with OffferHop.`
 
   return (
-    <div>
-      {/* Top bar */}
-      <div className="offers-top-bar">
-        <div className="container">
-          <div className="offers-top-inner">
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <button className="back-btn" onClick={onBack} style={{ marginTop: 3 }}>
-                <svg viewBox="0 0 12 12" fill="none" stroke="#0A0A0A" strokeWidth="1.8" strokeLinecap="round">
-                  <path d="M8 2L4 6l4 4"/>
-                </svg>
-              </button>
-              <div className="offers-title-block">
-                <h1>{title}</h1>
-                <div style={{ fontSize: 13, color: 'var(--gray-dark)' }}>
-                  {isLoading
-                    ? <em style={{ color: '#bbb' }}>Finding best offers…</em>
-                    : `${offers.length} offer${offers.length !== 1 ? 's' : ''} · sorted by savings`}
+    <>
+      <Helmet>
+        <title>{pageTitle} | OffferHop</title>
+        <meta name="description" content={metaDesc} />
+        <meta property="og:title" content={`${pageTitle} | OffferHop`} />
+        <meta property="og:description" content={metaDesc} />
+        <meta property="og:url" content={`https://offerhop.in/${citySlug}/${areaSlug}/${categorySlug}`} />
+        <link rel="canonical" href={`https://offerhop.in/${citySlug}/${areaSlug}/${categorySlug}`} />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home",    "item": "https://offerhop.in" },
+            { "@type": "ListItem", "position": 2, "name": cityName,  "item": `https://offerhop.in/${citySlug}` },
+            { "@type": "ListItem", "position": 3, "name": areaName,  "item": `https://offerhop.in/${citySlug}/${areaSlug}` },
+            { "@type": "ListItem", "position": 4, "name": catName,   "item": `https://offerhop.in/${citySlug}/${areaSlug}/${categorySlug}` },
+          ]
+        })}</script>
+      </Helmet>
+
+      <div>
+        {/* Top bar */}
+        <div className="offers-top-bar">
+          <div className="container">
+            <div className="offers-top-inner">
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <button className="back-btn" onClick={() => navigate(`/${citySlug}/${areaSlug}`)} style={{ marginTop: 3 }}>
+                  <svg viewBox="0 0 12 12" fill="none" stroke="#0A0A0A" strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M8 2L4 6l4 4"/>
+                  </svg>
+                </button>
+                <div className="offers-title-block">
+                  <h1>{catName} in {areaName}</h1>
+                  <div style={{ fontSize: 13, color: 'var(--gray-dark)' }}>
+                    {isLoading
+                      ? <em style={{ color: '#bbb' }}>Finding best offers…</em>
+                      : `${offers.length} offer${offers.length !== 1 ? 's' : ''} · sorted by savings`}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Breadcrumb */}
-          <div className="breadcrumb" style={{ marginTop: 10 }}>
-            <span className="breadcrumb-item" onClick={onBackToArea}>Home</span>
-            <span className="breadcrumb-sep">›</span>
-            <span className="breadcrumb-item" onClick={onBackToArea}>{city?.name}</span>
-            <span className="breadcrumb-sep">›</span>
-            <span className="breadcrumb-item" onClick={onBack}>{area?.name}</span>
-            {category && (
-              <>
-                <span className="breadcrumb-sep">›</span>
-                <span className="breadcrumb-current">{category.name}</span>
-              </>
-            )}
-          </div>
+            <div className="breadcrumb" style={{ marginTop: 10 }}>
+              <span className="breadcrumb-item" onClick={() => navigate('/')}>Home</span>
+              <span className="breadcrumb-sep">›</span>
+              <span className="breadcrumb-item" onClick={() => navigate(`/${citySlug}`)}>{cityName}</span>
+              <span className="breadcrumb-sep">›</span>
+              <span className="breadcrumb-item" onClick={() => navigate(`/${citySlug}/${areaSlug}`)}>{areaName}</span>
+              <span className="breadcrumb-sep">›</span>
+              <span className="breadcrumb-current">{catName}</span>
+            </div>
 
-          {/* Filter chips */}
-          <div className="filter-rail" style={{ paddingBottom: 0 }}>
-            {FILTERS.map(f => (
-              <button
-                key={f}
-                className={`fchip ${activeFilter === f ? 'active' : ''}`}
-                onClick={() => setActiveFilter(f)}
-              >
-                {f}
-              </button>
-            ))}
+            <div className="filter-rail" style={{ paddingBottom: 0 }}>
+              {FILTERS.map(f => (
+                <button
+                  key={f}
+                  className={`fchip ${activeFilter === f ? 'active' : ''}`}
+                  onClick={() => setActiveFilter(f)}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Offers grid */}
-      <div className="container" style={{ paddingTop: 24 }}>
-        {isLoading && (
-          <div className="offers-grid">
-            {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        )}
-
-        {isError && (
-          <div className="empty-state">
-            <div className="empty-icon">⚠️</div>
-            <div className="empty-title">Couldn't load offers</div>
-            <div className="empty-sub">Check your API keys or try again.</div>
-          </div>
-        )}
-
-        {!isLoading && !isError && offers.length === 0 && (
-          <div className="empty-state">
-            <div className="empty-icon">🔍</div>
-            <div className="empty-title">No offers here yet</div>
-            <div className="empty-sub">
-              Still growing in {area?.name}.<br />
-              Try a different dish or change your filter.
+        <div className="container" style={{ paddingTop: 24 }}>
+          {isLoading && (
+            <div className="offers-grid">
+              {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
             </div>
-            <button className="btn-primary" onClick={onBack}>Try another dish</button>
-            <button className="btn-ghost" onClick={onBackToArea}>Change area</button>
-          </div>
-        )}
+          )}
 
-        {!isLoading && !isError && offers.length > 0 && (
-          <div className="offers-grid">
-            {offers.map(offer => (
-              <OfferCard key={offer.id} offer={offer} onClick={() => setSelectedOffer(offer)} />
-            ))}
-          </div>
+          {isError && (
+            <div className="empty-state">
+              <div className="empty-icon">⚠️</div>
+              <div className="empty-title">Couldn't load offers</div>
+              <div className="empty-sub">Check your connection and try again.</div>
+            </div>
+          )}
+
+          {!isLoading && !isError && offers.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon">🔍</div>
+              <div className="empty-title">No offers here yet</div>
+              <div className="empty-sub">
+                Still growing in {areaName}.<br />
+                Try a different dish or change your filter.
+              </div>
+              <button className="btn-primary" onClick={() => navigate(`/${citySlug}/${areaSlug}`)}>Try another dish</button>
+              <button className="btn-ghost" onClick={() => navigate(`/${citySlug}`)}>Change area</button>
+            </div>
+          )}
+
+          {!isLoading && !isError && offers.length > 0 && (
+            <div className="offers-grid">
+              {offers.map(offer => (
+                <OfferCard key={offer.id} offer={offer} onClick={() => setSelectedOffer(offer)} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {selectedOffer && (
+          <OfferModal offer={selectedOffer} onClose={() => setSelectedOffer(null)} />
         )}
       </div>
-
-      {selectedOffer && (
-        <OfferModal offer={selectedOffer} onClose={() => setSelectedOffer(null)} />
-      )}
-    </div>
+    </>
   )
 }

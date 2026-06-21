@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSearch, fetchSearchHistory } from '../api/client'
 import OfferCard from '../components/OfferCard'
@@ -45,7 +46,14 @@ export default function SearchScreen() {
   const offers = results?.results || []
 
   return (
-    <div>
+    <>
+      <Helmet>
+        <title>Search Food & Drink Deals | OffferHop</title>
+        <meta name="description" content="Search for BOGO deals, happy hours, combo offers and restaurant discounts near you. Find biryani, pizza, beer and more deals across Indian cities." />
+        <link rel="canonical" href="https://offerhop.in/search" />
+      </Helmet>
+
+      <div>
       {/* Page header */}
       <div className="page-hero" style={{ paddingBottom: 20 }}>
         <div className="container">
@@ -134,5 +142,6 @@ export default function SearchScreen() {
         )}
       </div>
     </div>
+    </>
   )
 }
