@@ -655,8 +655,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ── Page section spacing ── */
-.page-section { padding: 32px 0; }
-@media (max-width: 640px) { .page-section { padding: 24px 0 32px; } }
+.page-section { padding-top: 32px; padding-bottom: 32px; }
+@media (max-width: 640px) { .page-section { padding-top: 24px; padding-bottom: 32px; } }
 
 /* ══════════════════════════════════════════════
    MOBILE — Global touch & scroll foundations
