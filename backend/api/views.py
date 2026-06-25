@@ -196,6 +196,94 @@ def admin_logout(request):
     return Response({'ok': True})
 
 
+# ── Admin: Offer Management ──────────────────────────────────────────────────
+
+@api_view(['GET'])
+def admin_offers_list(request):
+    if not _admin_auth(request):
+        return Response({'error': 'Unauthorized'}, status=401)
+
+    city_slug = request.GET.get('city', '')
+    area_slug = request.GET.get('area', '')
+    cat_slug  = request.GET.get('category', '')
+    q         = request.GET.get('q', '').strip()
+
+    qs = Offer.objects.select_related('area__city', 'category').order_by('-refreshed_at')
+    if city_slug: qs = qs.filter(area__city__slug=city_slug)
+    if area_slug: qs = qs.filter(area__slug=area_slug)
+    if cat_slug:  qs = qs.filter(category__slug=cat_slug)
+    if q:         qs = qs.filter(restaurant_name__icontains=q)
+
+    data = [{
+        'id':              o.id,
+        'restaurant_name': o.restaurant_name,
+        'area_name':       o.area.name,
+        'city_name':       o.area.city.name,
+        'area_slug':       o.area.slug,
+        'city_slug':       o.area.city.slug,
+        'category_name':   o.category.name if o.category else '',
+        'category_slug':   o.category.slug if o.category else '',
+        'deal_type':       o.deal_type,
+        'deal_description':o.deal_description,
+        'is_live':         o.is_live,
+        'savings_amount':  str(o.savings_amount) if o.savings_amount else None,
+        'savings_percent': o.savings_percent,
+        'source_url':      o.source_url,
+        'thumbnail_emoji': o.thumbnail_emoji,
+    } for o in qs[:500]]
+
+    return Response({'offers': data, 'total': qs.count()})
+
+
+@api_view(['DELETE'])
+def admin_offer_delete(request, offer_id):
+    if not _admin_auth(request):
+        return Response({'error': 'Unauthorized'}, status=401)
+    try:
+        offer = Offer.objects.select_related('area__city').get(pk=offer_id)
+    except Offer.DoesNotExist:
+        return Response({'error': 'Not found'}, status=404)
+
+    area = offer.area
+    city = area.city
+    offer.delete()
+    area.deal_count = area.offers.count()
+    area.save(update_fields=['deal_count'])
+    city.deal_count = Offer.objects.filter(area__city=city).count()
+    city.save(update_fields=['deal_count'])
+    return Response({'deleted': True})
+
+
+@api_view(['POST'])
+def admin_bulk_delete(request):
+    if not _admin_auth(request):
+        return Response({'error': 'Unauthorized'}, status=401)
+
+    ids = request.data.get('ids', [])
+    if not ids:
+        return Response({'error': 'No IDs provided'}, status=400)
+
+    qs = Offer.objects.filter(pk__in=ids).select_related('area__city')
+    area_city_pairs = list(qs.values_list('area_id', 'area__city_id').distinct())
+    count = qs.count()
+    qs.delete()
+
+    seen_areas = set(); seen_cities = set()
+    for area_id, city_id in area_city_pairs:
+        if area_id not in seen_areas:
+            seen_areas.add(area_id)
+            area = Area.objects.get(pk=area_id)
+            area.deal_count = area.offers.count()
+            area.save(update_fields=['deal_count'])
+        if city_id not in seen_cities:
+            seen_cities.add(city_id)
+            city = City.objects.get(pk=city_id)
+            city.deal_count = Offer.objects.filter(area__city=city).count()
+            city.save(update_fields=['deal_count'])
+
+    return Response({'deleted': count})
+
+
 # ── Admin: CSV Import ─────────────────────────────────────────────────────────
 
 @api_view(['POST'])

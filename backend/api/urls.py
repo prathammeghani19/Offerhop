@@ -14,4 +14,7 @@ urlpatterns = [
     path('admin/login/', views.admin_login),
     path('admin/logout/', views.admin_logout),
     path('admin/import-csv/', views.import_csv),
+    path('admin/offers/', views.admin_offers_list),
+    path('admin/offers/bulk-delete/', views.admin_bulk_delete),
+    path('admin/offers/<int:offer_id>/', views.admin_offer_delete),
 ]

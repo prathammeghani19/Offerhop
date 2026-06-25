@@ -10,7 +10,7 @@ const STEPS = [
   { pct: 94, label: 'Saving to database…',           icon: '💾' },
 ]
 
-export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
+export default function AdminUploadScreen({ token, onLogout, onInvalidToken, hideHeader }) {
   const [cities, setCities]         = useState([])
   const [areas, setAreas]           = useState([])
   const [categories, setCategories] = useState([])
@@ -104,36 +104,31 @@ export default function AdminUploadScreen({ token, onLogout, onInvalidToken }) {
   const catName  = categories.find(c => c.slug === catSlug)?.name || ''
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0B1F3A', paddingTop: 80 }}>
+    <div style={{ minHeight: '100vh', background: '#0F172A', paddingTop: hideHeader ? 0 : 80 }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
-          <div>
-            <h1 style={{ color: '#F9F5EE', fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>
-              Import Deals
-            </h1>
-            <p style={{ color: 'rgba(249,245,238,0.5)', fontSize: 14, marginTop: 6 }}>
-              Upload an Exa Webset CSV — Claude validates and structures the data automatically.
-            </p>
+        {/* Header — only shown when standalone (no shared admin bar) */}
+        {!hideHeader && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+            <div>
+              <h1 style={{ color: '#F9F5EE', fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>Import Deals</h1>
+              <p style={{ color: 'rgba(249,245,238,0.5)', fontSize: 14, marginTop: 6 }}>
+                Upload an Exa Webset CSV — Claude validates and structures the data automatically.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <a href="/" style={{ color: 'rgba(249,245,238,0.4)', fontSize: 13, padding: '6px 12px', border: '1px solid rgba(249,245,238,0.15)', borderRadius: 8, cursor: 'pointer', textDecoration: 'none' }}>← View App</a>
+              <button onClick={onLogout} style={{ color: 'rgba(249,245,238,0.4)', fontSize: 13, padding: '6px 12px', border: '1px solid rgba(249,245,238,0.15)', borderRadius: 8, cursor: 'pointer', background: 'none' }}>Logout</button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <a href="/" style={{
-              color: 'rgba(249,245,238,0.4)', fontSize: 13, padding: '6px 12px',
-              border: '1px solid rgba(249,245,238,0.15)', borderRadius: 8,
-              cursor: 'pointer', textDecoration: 'none',
-            }}>
-              ← View App
-            </a>
-            <button onClick={onLogout} style={{
-              color: 'rgba(249,245,238,0.4)', fontSize: 13, padding: '6px 12px',
-              border: '1px solid rgba(249,245,238,0.15)', borderRadius: 8,
-              cursor: 'pointer', background: 'none',
-            }}>
-              Logout
-            </button>
+        )}
+
+        {hideHeader && (
+          <div style={{ marginBottom: 28 }}>
+            <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>Import CSV</h1>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 4 }}>Upload an Exa Webset CSV — Claude validates and structures the data.</p>
           </div>
-        </div>
+        )}
 
         {/* Selectors */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
