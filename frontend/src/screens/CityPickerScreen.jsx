@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCities } from '../api/client'
 import { useApp } from '../context/AppContext'
+import { track } from '../analytics'
 
 export default function CityPickerScreen() {
   const { setCity } = useApp()
@@ -21,6 +22,7 @@ export default function CityPickerScreen() {
 
   const handleSelect = (city) => {
     setCity(city)
+    track('city_selected', { city: city.name, city_slug: city.slug, deal_count: city.deal_count })
     navigate(`/${city.slug}`)
   }
 

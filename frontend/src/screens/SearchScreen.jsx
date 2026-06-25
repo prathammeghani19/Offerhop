@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchSearch, fetchSearchHistory } from '../api/client'
+import { track } from '../analytics'
 import OfferCard from '../components/OfferCard'
 import SkeletonCard from '../components/SkeletonCard'
 
@@ -35,6 +36,7 @@ export default function SearchScreen() {
   const handleSearch = (q) => {
     setQuery(q)
     setSubmitted(q)
+    track('search_performed', { query: q })
   }
 
   const handleClear = () => {

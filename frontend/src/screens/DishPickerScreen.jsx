@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCities, fetchAreas, fetchCategories } from '../api/client'
 import { useApp } from '../context/AppContext'
+import { track } from '../analytics'
 
 export default function DishPickerScreen() {
   const { citySlug, areaSlug }         = useParams()
@@ -35,6 +36,7 @@ export default function DishPickerScreen() {
 
   const handleSelect = (cat) => {
     setCategory(cat)
+    track('category_selected', { category: cat.name, category_slug: cat.slug, area: areaName, city: cityName, is_drink: cat.is_drink })
     navigate(`/${citySlug}/${areaSlug}/${cat.slug}`)
   }
 

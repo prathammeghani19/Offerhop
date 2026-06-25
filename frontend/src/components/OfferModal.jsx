@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toggleSaved } from '../api/client'
+import { track } from '../analytics'
 
 function getFaviconUrl(sourceUrl) {
   if (!sourceUrl) return null
@@ -17,15 +18,25 @@ export default function OfferModal({ offer, onClose }) {
   const [logoFailed, setLogoFailed] = useState(false)
   const qc = useQueryClient()
 
+  const offerProps = {
+    restaurant: offer.restaurant_name,
+    deal_type: offer.deal_type,
+    area: offer.area_name,
+    city: offer.city_name,
+    category: offer.category_name,
+  }
+
   const mutation = useMutation({
     mutationFn: () => toggleSaved(offer.id),
     onSuccess: (data) => {
       setSaved(data.saved)
+      track(data.saved ? 'offer_saved' : 'offer_unsaved', offerProps)
       qc.invalidateQueries({ queryKey: ['saved'] })
     },
   })
 
   useEffect(() => {
+    track('offer_viewed', offerProps)
     document.body.style.overflow = 'hidden'
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -137,6 +148,7 @@ export default function OfferModal({ offer, onClose }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="modal-view-btn"
+                onClick={() => track('offer_link_clicked', { ...offerProps, url: offer.source_url })}
               >
                 View Offer →
               </a>

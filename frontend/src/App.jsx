@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { AppProvider } from './context/AppContext'
+import { trackPage } from './analytics'
 import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
 import CityPickerScreen from './screens/CityPickerScreen'
@@ -20,10 +21,17 @@ function AdminGate() {
   return <AdminUploadScreen token={token} onLogout={clearToken} onInvalidToken={clearToken} />
 }
 
+function PageTracker() {
+  const { pathname } = useLocation()
+  useEffect(() => { trackPage(pathname) }, [pathname])
+  return null
+}
+
 function AppShell() {
   const navigate = useNavigate()
   return (
     <div className="app">
+      <PageTracker />
       <Navbar onLogoClick={() => navigate('/')} />
       <main className="page-body">
         <Routes>

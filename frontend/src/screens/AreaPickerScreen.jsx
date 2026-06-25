@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCities, fetchAreas } from '../api/client'
 import { useApp } from '../context/AppContext'
+import { track } from '../analytics'
 
 export default function AreaPickerScreen() {
   const { citySlug }       = useParams()
@@ -33,6 +34,7 @@ export default function AreaPickerScreen() {
 
   const handleSelect = (area) => {
     setArea(area)
+    track('area_selected', { area: area.name, area_slug: area.slug, city: cityName, city_slug: citySlug })
     navigate(`/${citySlug}/${area.slug}`)
   }
 
