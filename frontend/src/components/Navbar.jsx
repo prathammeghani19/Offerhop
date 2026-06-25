@@ -1,19 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 
-function OfferHopMark({ size = 40 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <circle cx="16" cy="16" r="14" fill="none" stroke="#F9F5EE" strokeWidth="2.5"/>
-      <line x1="19.5" y1="10.5" x2="12.5" y2="21.5" stroke="#FDE68A" strokeWidth="2.2" strokeLinecap="round"/>
-      <circle cx="12.5" cy="10.5" r="2.4" fill="#FDE68A"/>
-      <circle cx="19.5" cy="21.5" r="2.4" fill="#FDE68A"/>
-    </svg>
-  )
-}
-
-export { OfferHopMark }
-
 export default function Navbar({ onLogoClick }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -31,11 +18,7 @@ export default function Navbar({ onLogoClick }) {
     <header className="navbar">
       <div className="container navbar-inner">
         <button className="navbar-logo" onClick={onLogoClick}>
-          <OfferHopMark size={40} />
-          <span className="navbar-wordmark">
-            <span className="wordmark-ffer">ffer</span>
-            <span className="wordmark-hop">hop</span>
-          </span>
+          <img src="/logo.png" alt="OffferHop" className="navbar-logo-img" />
         </button>
 
         <nav className="navbar-links">
@@ -58,7 +41,7 @@ export default function Navbar({ onLogoClick }) {
           {locationLabel && (
             <button className="location-pill" onClick={() => navigate('/')}>
               <svg width="11" height="11" viewBox="0 0 14 14" fill="none"
-                stroke="#F9F5EE" strokeWidth="1.8" strokeLinecap="round">
+                stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <circle cx="7" cy="6" r="2.5"/>
                 <path d="M7 1C4.239 1 2 3.239 2 6c0 4.25 5 7 5 7s5-2.75 5-7c0-2.761-2.239-5-5-5z"/>
               </svg>
