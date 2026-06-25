@@ -4,25 +4,42 @@ from .models import City, Area, Category, Offer
 
 def sitemap_xml(request):
     urls = [
-        ('https://offerhop.in/', '1.0', 'daily'),
-        ('https://offerhop.in/search', '0.5', 'weekly'),
-        ('https://offerhop.in/saved', '0.3', 'weekly'),
+        ('https://offerhop.in/',       '1.0', 'daily'),
+        ('https://offerhop.in/search', '0.6', 'weekly'),
+        ('https://offerhop.in/saved',  '0.4', 'weekly'),
     ]
 
     try:
-        for city in City.objects.all():
+        cities     = list(City.objects.all())
+        areas      = list(Area.objects.select_related('city').all())
+        categories = list(Category.objects.all())
+
+        # Areas that actually have offers — boost their priority
+        active_area_ids = set(
+            Offer.objects.values_list('area_id', flat=True).distinct()
+        )
+        # Category slugs that have offers per area
+        active_pairs = set(
+            Offer.objects.values_list('area_id', 'category_id').distinct()
+        )
+        cat_id_map = {c.id: c for c in categories}
+
+        for city in cities:
             urls.append((f'https://offerhop.in/{city.slug}', '0.9', 'daily'))
-            for area in Area.objects.filter(city=city):
-                urls.append((f'https://offerhop.in/{city.slug}/{area.slug}', '0.9', 'daily'))
-                cat_ids = (Offer.objects
-                           .filter(area=area)
-                           .values_list('category_id', flat=True)
-                           .distinct())
-                for cat in Category.objects.filter(id__in=cat_ids):
-                    urls.append((
-                        f'https://offerhop.in/{city.slug}/{area.slug}/{cat.slug}',
-                        '0.8', 'daily'
-                    ))
+
+        for area in areas:
+            priority = '0.9' if area.id in active_area_ids else '0.7'
+            urls.append((
+                f'https://offerhop.in/{area.city.slug}/{area.slug}',
+                priority, 'daily'
+            ))
+            for cat in categories:
+                has_offers = (area.id, cat.id) in active_pairs
+                priority   = '0.85' if has_offers else '0.6'
+                urls.append((
+                    f'https://offerhop.in/{area.city.slug}/{area.slug}/{cat.slug}',
+                    priority, 'daily'
+                ))
     except Exception:
         pass
 
