@@ -239,15 +239,63 @@ def admin_offers_list(request):
     return Response({'offers': data, 'total': qs.count()})
 
 
-@api_view(['DELETE'])
-def admin_offer_delete(request, offer_id):
+@api_view(['GET', 'PATCH', 'DELETE'])
+def admin_offer_detail(request, offer_id):
     if not _admin_auth(request):
         return Response({'error': 'Unauthorized'}, status=401)
     try:
-        offer = Offer.objects.select_related('area__city').get(pk=offer_id)
+        offer = Offer.objects.select_related('area__city', 'category').get(pk=offer_id)
     except Offer.DoesNotExist:
         return Response({'error': 'Not found'}, status=404)
 
+    if request.method == 'GET':
+        return Response({
+            'id':              offer.id,
+            'restaurant_name': offer.restaurant_name,
+            'area_name':       offer.area.name,
+            'city_name':       offer.area.city.name,
+            'category_name':   offer.category.name if offer.category else '',
+            'deal_type':       offer.deal_type,
+            'deal_description':offer.deal_description,
+            'offer_detail':    offer.offer_detail,
+            'savings_amount':  str(offer.savings_amount) if offer.savings_amount else '',
+            'savings_percent': offer.savings_percent or '',
+            'valid_until':     offer.valid_until,
+            'rating':          str(offer.rating) if offer.rating else '',
+            'review_count':    offer.review_count,
+            'is_live':         offer.is_live,
+            'is_pre_book':     offer.is_pre_book,
+            'is_bank_offer':   offer.is_bank_offer,
+            'source_url':      offer.source_url,
+            'thumbnail_emoji': offer.thumbnail_emoji,
+        })
+
+    if request.method == 'PATCH':
+        d = request.data
+        EDITABLE = [
+            'restaurant_name', 'deal_type', 'deal_description', 'offer_detail',
+            'savings_amount', 'savings_percent', 'valid_until', 'rating', 'review_count',
+            'is_live', 'is_pre_book', 'is_bank_offer', 'source_url', 'thumbnail_emoji',
+        ]
+        for field in EDITABLE:
+            if field in d:
+                val = d[field]
+                if field in ('savings_amount', 'rating'):
+                    try: val = float(val) if val not in ('', None) else None
+                    except: val = None
+                elif field in ('savings_percent', 'review_count'):
+                    try: val = int(val) if val not in ('', None) else None
+                    except: val = None
+                elif field in ('is_live', 'is_pre_book', 'is_bank_offer'):
+                    val = bool(val)
+                setattr(offer, field, val)
+        offer.save()
+
+        # bust cache
+        cache.delete(f"offers:{offer.area.slug}:{offer.category.slug if offer.category else ''}:ALL")
+        return Response({'updated': True, 'id': offer.id})
+
+    # DELETE
     area = offer.area
     city = area.city
     offer.delete()

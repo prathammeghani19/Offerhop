@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import AdminOfferDrawer from '../components/AdminOfferDrawer'
 
 const API = '/api'
 
@@ -23,6 +24,7 @@ export default function AdminOffersScreen({ token, onInvalidToken }) {
   const [confirm, setConfirm]         = useState(null) // { type: 'single'|'bulk', ids }
   const [deleting, setDeleting]       = useState(false)
   const [toast, setToast]             = useState('')
+  const [drawerOffer, setDrawerOffer] = useState(null)
 
   useEffect(() => {
     fetch(`${API}/cities/`).then(r => r.json()).then(setCities)
@@ -198,7 +200,9 @@ export default function AdminOffersScreen({ token, onInvalidToken }) {
                   background: isSelected ? 'rgba(45,201,138,0.06)' : 'transparent',
                   transition: 'background 0.1s',
                   alignItems: 'center',
+                  cursor: 'pointer',
                 }}
+                onClick={(e) => { if (e.target.type !== 'checkbox') setDrawerOffer(offer.id) }}
               >
                 {/* Checkbox */}
                 <div>
@@ -239,7 +243,7 @@ export default function AdminOffersScreen({ token, onInvalidToken }) {
                 {/* Delete */}
                 <div>
                   <button
-                    onClick={() => setConfirm({ type: 'single', ids: [offer.id], name: offer.restaurant_name })}
+                    onClick={(e) => { e.stopPropagation(); setConfirm({ type: 'single', ids: [offer.id], name: offer.restaurant_name }) }}
                     style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)', color: '#EF4444', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.1s' }}
                     title="Delete"
                   >
@@ -276,6 +280,17 @@ export default function AdminOffersScreen({ token, onInvalidToken }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Detail / Edit Drawer */}
+      {drawerOffer && (
+        <AdminOfferDrawer
+          offerId={drawerOffer}
+          token={token}
+          onClose={() => setDrawerOffer(null)}
+          onSaved={() => fetchOffers()}
+          onDeleted={() => { fetchOffers(); showToast('Offer deleted') }}
+        />
       )}
 
       {/* Toast */}
