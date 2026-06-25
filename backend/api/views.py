@@ -104,6 +104,10 @@ def offers_list(request):
         qs = qs.filter(category=category)
     if deal_type and deal_type != 'ALL':
         qs = qs.filter(deal_type=deal_type)
+    if request.GET.get('pre_book') == '1':
+        qs = qs.filter(is_pre_book=True)
+    if request.GET.get('bank_offer') == '1':
+        qs = qs.filter(is_bank_offer=True)
 
     session_key = _session_key(request)
     data = OfferSerializer(qs, many=True, context={'session_key': session_key}).data
@@ -352,6 +356,8 @@ def import_csv(request):
                     'rating': o.get('rating'),
                     'review_count': o.get('review_count') or 0,
                     'is_live': bool(o.get('is_live', False)),
+                    'is_pre_book': bool(o.get('is_pre_book', False)),
+                    'is_bank_offer': bool(o.get('is_bank_offer', False)),
                     'source_url': o.get('source_url') or '',
                     'thumbnail_emoji': o.get('thumbnail_emoji') or '🍽',
                 }

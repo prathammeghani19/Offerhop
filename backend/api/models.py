@@ -68,6 +68,8 @@ class Offer(models.Model):
     review_count = models.IntegerField(default=0)
     distance_km = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     is_live = models.BooleanField(default=False)
+    is_pre_book = models.BooleanField(default=False)
+    is_bank_offer = models.BooleanField(default=False)
     source_url = models.URLField(blank=True)
     thumbnail_emoji = models.CharField(max_length=10, default='🍽')
     created_at = models.DateTimeField(auto_now_add=True)

@@ -91,6 +91,8 @@ SCHEMA (each object):
   "valid_until": null or short string like "Daily till 7 PM",
   "rating": null or float 1.0-5.0,
   "is_live": true or false,
+  "is_pre_book": true if requires advance booking (Dineout/EazyDiner table reservation), else false,
+  "is_bank_offer": true if requires a specific bank card (HDFC/SBI/ICICI/Axis/Kotak etc.), else false,
   "source_url": "exact URL from entry",
   "offer_detail": "Full offer details — terms, timing, applicable items. Copy from Details field if good, else summarise.",
   "include": true or false
@@ -98,7 +100,7 @@ SCHEMA (each object):
 
 RULES:
 - "include": true only if this is a real restaurant deal (happy hours, BOGO, combo, % off food/drinks)
-- "include": false for bank/card offers, fintech cashback, delivery promo codes
+- "include": false for fintech cashback or delivery promo codes only — bank/card offers and pre-book are valid, include them with is_bank_offer/is_pre_book = true
 - Happy hour beer/cocktail deals → BOGO
 - Set menus / combo platters → COMBO
 - Percentage discounts → PERCENT_OFF
@@ -141,13 +143,19 @@ Return ONLY the JSON array."""
             'valid_until': str(o.get('valid_until') or '')[:80],
             'rating': _safe_float(o.get('rating')),
             'review_count': 0,
-            'is_live': bool(o.get('is_live', False)),
-            'source_url': url[:500],
+            'is_live':       bool(o.get('is_live', False)),
+            'is_pre_book':   bool(o.get('is_pre_book', False)),
+            'is_bank_offer': bool(o.get('is_bank_offer', False)),
+            'source_url':    url[:500],
             'thumbnail_emoji': emoji,
         })
 
     logger.info(f"Claude validated {len(offers)}/{len(rows)} CSV rows as real offers")
     return offers
+
+
+_PRE_BOOK_RE  = re.compile(r'pre.?book|advance\s*book|table\s*reserv|dineout|eazydiner|reserve\s*table|book\s*a\s*table', re.I)
+_BANK_OFFER_RE = re.compile(r'\b(hdfc|sbi|icici|axis|kotak|citibank|rbl|yes\s*bank|idfc|american\s*express|amex)\b|credit\s*card|debit\s*card|bank\s*offer|card\s*offer', re.I)
 
 
 def _regex_parse_csv(rows, area_name, category_name, emoji):
@@ -174,7 +182,9 @@ def _regex_parse_csv(rows, area_name, category_name, emoji):
             'valid_until': '',
             'rating': None,
             'review_count': 0,
-            'is_live': bool(re.search(r'happy.?hour|open now|daily|today', text, re.I)),
+            'is_live':       bool(re.search(r'happy.?hour|open now|daily|today', text, re.I)),
+            'is_pre_book':   bool(_PRE_BOOK_RE.search(text) or _PRE_BOOK_RE.search(url)),
+            'is_bank_offer': bool(_BANK_OFFER_RE.search(text)),
             'source_url': url[:500],
             'thumbnail_emoji': emoji,
         })
@@ -343,6 +353,8 @@ Return ONLY the JSON array."""
             'review_count':     _safe_int(o.get('review_count')) or 0,
             'distance_km':      None,
             'is_live':          bool(o.get('is_live', False)),
+            'is_pre_book':      bool(o.get('is_pre_book', False)),
+            'is_bank_offer':    bool(o.get('is_bank_offer', False)),
             'source_url':       url[:500],
             'thumbnail_emoji':  emoji,
         })
@@ -546,6 +558,8 @@ def _regex_parse(raw_results, area, category):
             'review_count':     review_count,
             'distance_km':      distance_km,
             'is_live':          any(p in body.lower() for p in ['open now', 'today', 'tonight', 'happy hour']),
+            'is_pre_book':      bool(_PRE_BOOK_RE.search(body) or _PRE_BOOK_RE.search(url)),
+            'is_bank_offer':    bool(_BANK_OFFER_RE.search(body)),
             'source_url':       url,
             'thumbnail_emoji':  emoji,
         })

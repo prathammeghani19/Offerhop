@@ -8,11 +8,12 @@ import OfferCard from '../components/OfferCard'
 import OfferModal from '../components/OfferModal'
 import SkeletonCard from '../components/SkeletonCard'
 
-const FOOD_FILTERS   = ['All', 'BOGO', 'Combo', '% Off', 'Open Now']
-const DRINKS_FILTERS = ['All', 'BOGO', '% Off', 'Happy Hours', 'Open Now']
+const FOOD_FILTERS   = ['All', 'BOGO', 'Combo', '% Off', 'Pre-book', 'Bank Offer', 'Open Now']
+const DRINKS_FILTERS = ['All', 'BOGO', '% Off', 'Happy Hours', 'Pre-book', 'Bank Offer', 'Open Now']
 const FILTER_MAP = {
   All: 'ALL', BOGO: 'BOGO', Combo: 'COMBO',
-  '% Off': 'PERCENT_OFF', 'Happy Hours': 'ALL', 'Open Now': 'ALL',
+  '% Off': 'PERCENT_OFF', 'Happy Hours': 'ALL',
+  'Pre-book': 'ALL', 'Bank Offer': 'ALL', 'Open Now': 'ALL',
 }
 const DRINK_SLUGS = ['beer', 'cocktails', 'mocktails', 'craft-beer', 'spirits']
 
@@ -66,7 +67,9 @@ export default function OffersScreen() {
 
   const allOffers = data?.offers || []
   const offers = (() => {
-    if (activeFilter === 'Open Now') return allOffers.filter(o => o.is_live)
+    if (activeFilter === 'Open Now')   return allOffers.filter(o => o.is_live)
+    if (activeFilter === 'Pre-book')   return allOffers.filter(o => o.is_pre_book)
+    if (activeFilter === 'Bank Offer') return allOffers.filter(o => o.is_bank_offer)
     if (activeFilter === 'Happy Hours') return allOffers.filter(o =>
       o.is_live || /happy.?hour/i.test(o.valid_until || '') || /happy.?hour/i.test(o.deal_description || '')
     )

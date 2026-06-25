@@ -54,7 +54,7 @@ class OfferSerializer(serializers.ModelSerializer):
             'id', 'restaurant_name', 'area_name', 'city_name', 'category_name',
             'deal_type', 'deal_description', 'offer_detail', 'savings_amount', 'savings_percent',
             'valid_until', 'rating', 'review_count', 'distance_km',
-            'is_live', 'source_url', 'thumbnail_emoji', 'is_saved',
+            'is_live', 'is_pre_book', 'is_bank_offer', 'source_url', 'thumbnail_emoji', 'is_saved',
         ]
 
     def get_is_saved(self, obj):
