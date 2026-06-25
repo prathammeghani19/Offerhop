@@ -255,6 +255,7 @@ def admin_offer_detail(request, offer_id):
             'area_name':       offer.area.name,
             'city_name':       offer.area.city.name,
             'category_name':   offer.category.name if offer.category else '',
+            'category_slug':   offer.category.slug if offer.category else '',
             'deal_type':       offer.deal_type,
             'deal_description':offer.deal_description,
             'offer_detail':    offer.offer_detail,
@@ -289,6 +290,13 @@ def admin_offer_detail(request, offer_id):
                 elif field in ('is_live', 'is_pre_book', 'is_bank_offer'):
                     val = bool(val)
                 setattr(offer, field, val)
+
+        if 'category_slug' in d:
+            try:
+                offer.category = Category.objects.get(slug=d['category_slug'])
+            except Category.DoesNotExist:
+                pass
+
         offer.save()
 
         # bust cache

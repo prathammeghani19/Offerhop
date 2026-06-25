@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react'
 
 const API = '/api'
 
+const EMOJIS_BY_CAT = {
+  'beer': '🍺', 'cocktails': '🍹', 'mocktails': '🥤', 'craft-beer': '🍻',
+  'spirits': '🥃', 'biryani': '🍛', 'pizza': '🍕', 'burger': '🍔',
+  'sandwich': '🥪', 'wrap-rolls': '🌯', 'bakery': '🥐', 'desserts': '🍰',
+  'healthy-meals': '🥗', 'tea-snacks': '🫖', 'chinese': '🥡', 'pasta': '🍝',
+  'south-indian': '🥘', 'north-indian': '🍲', 'shakes': '🍦', 'sweets': '🧁',
+}
+
 const DEAL_TYPES = [
   { value: 'BOGO',        label: 'BOGO — Buy One Get One' },
   { value: 'COMBO',       label: 'Combo — Bundle / Set Meal' },
@@ -9,21 +17,31 @@ const DEAL_TYPES = [
 ]
 
 export default function AdminOfferDrawer({ offerId, token, onClose, onSaved, onDeleted }) {
-  const [offer, setOffer]     = useState(null)
-  const [form, setForm]       = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving]   = useState(false)
+  const [offer, setOffer]       = useState(null)
+  const [form, setForm]         = useState(null)
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [saving, setSaving]     = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
-  const [toast, setToast]     = useState('')
-  const [dirty, setDirty]     = useState(false)
+  const [toast, setToast]       = useState('')
+  const [dirty, setDirty]       = useState(false)
+
+  useEffect(() => {
+    fetch(`${API}/categories/`).then(r => r.json()).then(setCategories)
+  }, [])
 
   useEffect(() => {
     if (!offerId) return
     setLoading(true)
     fetch(`${API}/admin/offers/${offerId}/`, { headers: { 'X-Admin-Token': token } })
       .then(r => r.json())
-      .then(d => { setOffer(d); setForm(d); setLoading(false); setDirty(false) })
+      .then(d => {
+        setOffer(d)
+        setForm({ ...d, category_slug: d.category_slug || '' })
+        setLoading(false)
+        setDirty(false)
+      })
   }, [offerId])
 
   // Close on Escape
@@ -116,6 +134,29 @@ export default function AdminOfferDrawer({ offerId, token, onClose, onSaved, onD
               {/* Restaurant name */}
               <Field label="Restaurant Name">
                 <input value={form.restaurant_name} onChange={e => set('restaurant_name', e.target.value)} style={inputStyle} />
+              </Field>
+
+              {/* Category — move to another category */}
+              <Field label="Category" hint="Move to a different category">
+                <select
+                  value={form.category_slug || ''}
+                  onChange={e => {
+                    const slug = e.target.value
+                    const autoEmoji = EMOJIS_BY_CAT[slug]
+                    set('category_slug', slug)
+                    if (autoEmoji) set('thumbnail_emoji', autoEmoji)
+                  }}
+                  style={inputStyle}
+                >
+                  {categories.map(c => (
+                    <option key={c.slug} value={c.slug}>{c.icon} {c.name}</option>
+                  ))}
+                </select>
+                {form.category_slug !== (offer?.category_slug || '') && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: '#FBBf24' }}>
+                    Moving: <strong>{offer?.category_name}</strong> → <strong>{categories.find(c => c.slug === form.category_slug)?.name}</strong>
+                  </div>
+                )}
               </Field>
 
               {/* Deal type */}
