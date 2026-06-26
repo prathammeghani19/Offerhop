@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCities, fetchAreas, fetchCategories } from '../api/client'
 import { useApp } from '../context/AppContext'
 import { track } from '../analytics'
+import SeoHead from '../seo/SeoHead'
 
 export default function DishPickerScreen() {
   const { citySlug, areaSlug }         = useParams()
@@ -45,22 +45,13 @@ export default function DishPickerScreen() {
 
   return (
     <>
-      <Helmet>
-        <title>Restaurant Deals in {areaName}, {cityName} | OffferHop</title>
-        <meta name="description" content={`Best food and drink deals in ${areaName}, ${cityName}. Browse biryani, pizza, beer, cocktails, BOGO offers and happy hours at top restaurants.`} />
-        <meta property="og:title" content={`Restaurant Deals in ${areaName}, ${cityName} | OffferHop`} />
-        <meta property="og:url" content={`https://offerhop.in/${citySlug}/${areaSlug}`} />
-        <link rel="canonical" href={`https://offerhop.in/${citySlug}/${areaSlug}`} />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://offerhop.in" },
-            { "@type": "ListItem", "position": 2, "name": cityName, "item": `https://offerhop.in/${citySlug}` },
-            { "@type": "ListItem", "position": 3, "name": areaName, "item": `https://offerhop.in/${citySlug}/${areaSlug}` },
-          ]
-        })}</script>
-      </Helmet>
+      <SeoHead
+        page="area"
+        title={`Restaurant Deals in ${areaName}, ${cityName} | OffferHop`}
+        description={`Best food and drink deals in ${areaName}, ${cityName}. Browse biryani, pizza, beer, cocktails, BOGO offers and happy hours at top restaurants.`}
+        canonical={`https://offerhop.in/${citySlug}/${areaSlug}`}
+        context={{ city, area }}
+      />
 
       <div>
         <div className="back-bar">

@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCities } from '../api/client'
 import { useApp } from '../context/AppContext'
 import { track } from '../analytics'
+import SeoHead from '../seo/SeoHead'
 
 export default function CityPickerScreen() {
   const { setCity } = useApp()
@@ -28,27 +28,12 @@ export default function CityPickerScreen() {
 
   return (
     <>
-      <Helmet>
-        <title>OffferHop – Best Food & Drink Deals in Bangalore, Delhi, Mumbai</title>
-        <meta name="description" content="Discover BOGO deals, happy hours, combo offers and dining discounts at top restaurants near you. Browse deals in Bangalore, Delhi, Mumbai, Pune, Hyderabad and more Indian cities." />
-        <meta property="og:title" content="OffferHop – Best Food & Drink Deals in India" />
-        <meta property="og:description" content="Find BOGO, happy hour and dining deals at restaurants near you across Indian cities." />
-        <meta property="og:url" content="https://offerhop.in/" />
-        <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://offerhop.in/" />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          "name": "OffferHop",
-          "url": "https://offerhop.in",
-          "description": "Discover food and drink deals at restaurants in Indian cities – Bangalore, Delhi, Mumbai and more.",
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": { "@type": "EntryPoint", "urlTemplate": "https://offerhop.in/search?q={search_term_string}" },
-            "query-input": "required name=search_term_string"
-          }
-        })}</script>
-      </Helmet>
+      <SeoHead
+        page="home"
+        title="OffferHop – Best Food & Drink Deals in Bangalore, Delhi, Mumbai"
+        description="Discover BOGO deals, happy hours, combo offers and dining discounts at top restaurants near you. Browse deals in Bangalore, Delhi, Mumbai, Pune, Hyderabad and more Indian cities."
+        canonical="https://offerhop.in/"
+      />
 
       <div>
         <div className="page-hero">

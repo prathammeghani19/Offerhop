@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCities, fetchAreas } from '../api/client'
 import { useApp } from '../context/AppContext'
 import { track } from '../analytics'
+import SeoHead from '../seo/SeoHead'
 
 export default function AreaPickerScreen() {
   const { citySlug }       = useParams()
@@ -42,21 +42,13 @@ export default function AreaPickerScreen() {
 
   return (
     <>
-      <Helmet>
-        <title>Food & Drink Deals in {cityName} – Areas & Neighbourhoods | OffferHop</title>
-        <meta name="description" content={`Find the best restaurant deals, happy hours and dining offers in ${cityName}. Browse by area – Koramangala, Indiranagar, Connaught Place and more.`} />
-        <meta property="og:title" content={`Food & Drink Deals in ${cityName} | OffferHop`} />
-        <meta property="og:url" content={`https://offerhop.in/${citySlug}`} />
-        <link rel="canonical" href={`https://offerhop.in/${citySlug}`} />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://offerhop.in" },
-            { "@type": "ListItem", "position": 2, "name": cityName, "item": `https://offerhop.in/${citySlug}` },
-          ]
-        })}</script>
-      </Helmet>
+      <SeoHead
+        page="city"
+        title={`Food & Drink Deals in ${cityName} – Areas & Neighbourhoods | OffferHop`}
+        description={`Find the best restaurant deals, happy hours and dining offers in ${cityName}. Browse by area – Koramangala, Indiranagar, Connaught Place and more.`}
+        canonical={`https://offerhop.in/${citySlug}`}
+        context={{ city, areas }}
+      />
 
       <div>
         <div className="back-bar">

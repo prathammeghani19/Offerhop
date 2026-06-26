@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCities, fetchAreas, fetchCategories, fetchOffers } from '../api/client'
 import { useApp } from '../context/AppContext'
 import OfferCard from '../components/OfferCard'
 import OfferModal from '../components/OfferModal'
 import SkeletonCard from '../components/SkeletonCard'
+import SeoHead from '../seo/SeoHead'
 
 const FOOD_FILTERS   = ['All', 'BOGO', 'Combo', '% Off', 'Pre-book', 'Bank Offer', 'Open Now']
 const DRINKS_FILTERS = ['All', 'BOGO', '% Off', 'Happy Hours', 'Pre-book', 'Bank Offer', 'Open Now']
@@ -85,24 +85,13 @@ export default function OffersScreen() {
 
   return (
     <>
-      <Helmet>
-        <title>{pageTitle} | OffferHop</title>
-        <meta name="description" content={metaDesc} />
-        <meta property="og:title" content={`${pageTitle} | OffferHop`} />
-        <meta property="og:description" content={metaDesc} />
-        <meta property="og:url" content={`https://offerhop.in/${citySlug}/${areaSlug}/${categorySlug}`} />
-        <link rel="canonical" href={`https://offerhop.in/${citySlug}/${areaSlug}/${categorySlug}`} />
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Home",    "item": "https://offerhop.in" },
-            { "@type": "ListItem", "position": 2, "name": cityName,  "item": `https://offerhop.in/${citySlug}` },
-            { "@type": "ListItem", "position": 3, "name": areaName,  "item": `https://offerhop.in/${citySlug}/${areaSlug}` },
-            { "@type": "ListItem", "position": 4, "name": catName,   "item": `https://offerhop.in/${citySlug}/${areaSlug}/${categorySlug}` },
-          ]
-        })}</script>
-      </Helmet>
+      <SeoHead
+        page="category"
+        title={`${pageTitle} | OffferHop`}
+        description={metaDesc}
+        canonical={`https://offerhop.in/${citySlug}/${areaSlug}/${categorySlug}`}
+        context={{ city, area, category, offers }}
+      />
 
       <div>
         {/* Top bar */}
