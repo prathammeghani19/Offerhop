@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import AdminOfferDrawer from '../components/AdminOfferDrawer'
+import AdminCreateOfferDrawer from '../components/AdminCreateOfferDrawer'
 
 const API = '/api'
 
@@ -25,6 +26,7 @@ export default function AdminOffersScreen({ token, onInvalidToken }) {
   const [deleting, setDeleting]       = useState(false)
   const [toast, setToast]             = useState('')
   const [drawerOffer, setDrawerOffer] = useState(null)
+  const [showCreate, setShowCreate]   = useState(false)
 
   useEffect(() => {
     fetch(`${API}/cities/`).then(r => r.json()).then(setCities)
@@ -106,13 +108,21 @@ export default function AdminOffersScreen({ token, onInvalidToken }) {
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 24px' }}>
 
       {/* Page title */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>
-          Manage Offers
-        </h1>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 4 }}>
-          Browse, filter and remove offers from the database.
-        </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16 }}>
+        <div>
+          <h1 style={{ color: '#fff', fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>
+            Manage Offers
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 4 }}>
+            Browse, filter, edit and remove offers from the database.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          style={{ flexShrink: 0, padding: '10px 18px', borderRadius: 8, border: 'none', background: '#2DC98A', color: '#0F172A', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          + New Offer
+        </button>
       </div>
 
       {/* Filter bar */}
@@ -280,6 +290,15 @@ export default function AdminOffersScreen({ token, onInvalidToken }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Create Offer Drawer */}
+      {showCreate && (
+        <AdminCreateOfferDrawer
+          token={token}
+          onClose={() => setShowCreate(false)}
+          onCreated={() => { fetchOffers(); showToast('Offer created') }}
+        />
       )}
 
       {/* Detail / Edit Drawer */}

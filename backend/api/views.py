@@ -202,11 +202,64 @@ def admin_logout(request):
 
 # ── Admin: Offer Management ──────────────────────────────────────────────────
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 def admin_offers_list(request):
     if not _admin_auth(request):
         return Response({'error': 'Unauthorized'}, status=401)
 
+    if request.method == 'POST':
+        d = request.data
+        for field in ('area_slug', 'category_slug', 'restaurant_name', 'deal_type'):
+            if not d.get(field):
+                return Response({'error': f'{field} is required'}, status=400)
+
+        try:
+            area = Area.objects.select_related('city').get(slug=d['area_slug'])
+        except Area.DoesNotExist:
+            return Response({'error': 'Area not found'}, status=404)
+
+        try:
+            category = Category.objects.get(slug=d['category_slug'])
+        except Category.DoesNotExist:
+            return Response({'error': 'Category not found'}, status=404)
+
+        def _dec(v):
+            try: return float(v) if v not in ('', None) else None
+            except: return None
+
+        def _int(v):
+            try: return int(v) if v not in ('', None) else None
+            except: return None
+
+        offer = Offer.objects.create(
+            area=area,
+            category=category,
+            restaurant_name=d['restaurant_name'],
+            deal_type=d['deal_type'],
+            deal_description=(d.get('deal_description') or '')[:300],
+            offer_detail=d.get('offer_detail') or '',
+            savings_amount=_dec(d.get('savings_amount')),
+            savings_percent=_int(d.get('savings_percent')),
+            valid_until=d.get('valid_until') or '',
+            rating=_dec(d.get('rating')),
+            review_count=_int(d.get('review_count')) or 0,
+            is_live=bool(d.get('is_live', True)),
+            is_pre_book=bool(d.get('is_pre_book', False)),
+            is_bank_offer=bool(d.get('is_bank_offer', False)),
+            source_url=d.get('source_url') or '',
+            thumbnail_emoji=d.get('thumbnail_emoji') or '🍽',
+        )
+
+        area.deal_count = area.offers.count()
+        area.save(update_fields=['deal_count'])
+        city = area.city
+        city.deal_count = Offer.objects.filter(area__city=city).count()
+        city.save(update_fields=['deal_count'])
+        cache.delete(f"offers:{area.slug}:{category.slug}:ALL")
+
+        return Response({'created': True, 'id': offer.id}, status=201)
+
+    # GET — list with filters
     city_slug = request.GET.get('city', '')
     area_slug = request.GET.get('area', '')
     cat_slug  = request.GET.get('category', '')
